@@ -1,159 +1,100 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <base target="_top">
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        background: #f4f4f4;
-        padding: 20px;
-        text-align: center;
-      }
-      #quiz {
-        background: #fff;
-        padding: 30px;
-        border-radius: 10px;
-        max-width: 600px;
-        margin: auto;
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      }
-      #cover img {
-        max-width: 100%;
-        border-radius: 10px;
-        margin-bottom: 20px;
-      }
-      #cover h2 {
-        margin-bottom: 10px;
-        font-size: 24px;
-        color: #333;
-      }
-      #cover p {
-        font-size: 16px;
-        color: #555;
-        margin-bottom: 20px;
-      }
-      input[type="text"] {
-        padding: 10px;
-        font-size: 16px;
-        width: 80%;
-        margin-bottom: 10px;
-        border-radius: 5px;
-        border: 1px solid #ccc;
-      }
-      button {
-        padding: 10px 20px;
-        font-size: 16px;
-        background-color: #0078D7;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-      }
-      button:hover {
-        background-color: #005a9e;
-      }
-      .question {
-        font-size: 18px;
-        margin-bottom: 20px;
-      }
-      .option button {
-        display: block;
-        width: 100%;
-        margin: 8px 0;
-        padding: 12px;
-        font-size: 16px;
-        border: none;
-        border-radius: 5px;
-        background-color: #0078D7;
-        color: white;
-        cursor: pointer;
-      }
-      audio, video {
-        margin-top: 20px;
-        width: 100%;
-        max-width: 500px;
-      }
-      #scoreSummary {
-        font-size: 20px;
-        font-weight: bold;
-        color: #333;
-        margin-top: 30px;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="quiz">
-      <div id="cover">
-        <img src="https://i.postimg.cc/Y28B1nvj/Rum-Ham-Header.png" alt="Rum Ham">
-        <h2>Welcome to the RumHam Quiz!</h2>
-        <p>Test your knowledge across multiple rounds. Each question is timed — the faster you answer, the higher your score. Enter your name below to begin.</p>
-        <input type="text" id="username" placeholder="Enter your name">
-        <br>
-        <button onclick="startQuiz()">Start Quiz</button>
-      </div>
-    </div>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Answer Bank</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f0f0f0;
+      padding: 20px;
+    }
 
-    <script>
-      let totalScore = 0;
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
 
-      function startQuiz() {
-        const name = document.getElementById("username").value.trim();
-        if (!name) {
-          alert("Please enter your name.");
-          return;
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .option {
+      padding: 12px;
+      background: white;
+      border: 2px solid #ccc;
+      border-radius: 6px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .option.selected {
+      background-color: #007bff;
+      color: white;
+      border-color: #0056b3;
+    }
+
+    .option.yellow {
+      background-color: yellow !important;
+      color: black !important;
+      border-color: goldenrod !important;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Answer Bank</h1>
+  <div class="grid" id="grid"></div>
+
+  <script>
+    const customOptions = [
+      "This", "would", "be", "easier", "than",
+      "pen", "and", "paper", ".", "Just",
+      "adjust", "this", "bit", "and", "host",
+      "on", "a", "free", "site", "like",
+      "gethub", "Double Click a Correct", "Click to Select", "Click to Undo", "Option Y",
+      "Option Z", "Option AA", "Option AB", "Option AC", "Option AD",
+      "Option AE", "Option AF", "Option AG", "Option AH", "Option AI",
+      "Option AJ", "Option AK", "Option AL", "Option AM", "Option AN",
+      "Option AO", "Option AP", "Option AQ", "Option AR", "Option AS",
+      "Option AT", "Option AU", "Option AV", "Option AW", "Option AX",
+      "Option AY", "Option AZ", "Option BA", "Option BB", "Option BC",
+      "Option BD", "Option BE", "Option BF", "Option BG", "Option BH",
+      "Option BI", "Option BJ", "Option BK", "Option BL", "Option BM",
+      "Option BN", "Option BO", "Option BP", "Option BQ", "Option BR",
+      "Option BS", "Option BT", "Option BU", "Option BV", "Option BW",
+      "Option BX", "Option BY", "Option BZ", "Option CA", "Option CB"
+    ];
+
+    const grid = document.getElementById('grid');
+
+    customOptions.forEach(text => {
+      const btn = document.createElement('div');
+      btn.className = 'option';
+      btn.textContent = text;
+
+      btn.addEventListener('click', () => {
+        if (btn.classList.contains('yellow')) {
+          btn.classList.remove('yellow');
+        } else {
+          btn.classList.toggle('selected');
         }
+      });
 
-        google.script.run
-          .withSuccessHandler(loadQuestion)
-          .withFailureHandler(err => {
-            document.getElementById("quiz").innerHTML = `<div style="color:red;">Error: ${err.message}</div>`;
-          })
-          .setUser(name);
-      }
+      btn.addEventListener('dblclick', () => {
+        btn.classList.remove('selected');
+        btn.classList.toggle('yellow');
+      });
 
-      function submit(answer) {
-        google.script.run
-          .withSuccessHandler(loadQuestion)
-          .withFailureHandler(err => {
-            document.getElementById("quiz").innerHTML = `<div style="color:red;">Error: ${err.message}</div>`;
-          })
-          .submitAnswer(answer);
-      }
+      grid.appendChild(btn);
+    });
+  </script>
 
-      function loadQuestion(data) {
-        if (data.score !== undefined) {
-          totalScore += data.score;
-        }
-
-        if (data.done) {
-          document.getElementById("quiz").innerHTML = `
-            <h2>🎉 Quiz Complete!</h2>
-            <div id="scoreSummary">Your total score: <strong>${totalScore}</strong></div>
-          `;
-          return;
-        }
-
-        let html = `
-          <h3>Round ${data.roundNumber} — ${data.roundCategory}</h3>
-          <div class="question">
-            <strong>Q${data.questionNumber}:</strong> ${data.question}
-          </div>
-        `;
-
-        if (data.media) {
-          if (data.media.endsWith(".mp3")) {
-            html += `<audio controls autoplay src="${data.media}"></audio>`;
-          } else if (data.media.endsWith(".mp4")) {
-            html += `<video controls autoplay src="${data.media}"></video>`;
-          }
-        }
-
-        data.options.forEach(opt => {
-          html += `<div class="option"><button onclick="submit('${opt}')">${opt}</button></div>`;
-        });
-
-        document.getElementById("quiz").innerHTML = html;
-      }
-    </script>
-  </body>
+</body>
 </html>
