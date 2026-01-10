@@ -150,7 +150,7 @@ body { height: 100vh; }
 }
 @media (max-width: 768px) {
 body { min-height: 100vh; height: auto; }
-#quiz { min-height: auto; padding: 0 20px 40px; }
+#quiz { min-height: auto; padding: 0 10px 30px; }
 }
 #quiz {
 background: #fff;
@@ -895,27 +895,34 @@ transform: translateY(-2px);
 box-shadow: 0 6px 16px rgba(40, 167, 69, 0.4);
 }
 
-/* === MOBILE LAYOUT FIXES (APPLIED HERE) === */
+/* === MOBILE LAYOUT FIXES WITH SCALING === */
+
+/* Wrapper to allow scaling without breaking layout flow */
+.desktop-layout-wrapper {
+width: 100%;
+max-width: 1200px;
+margin: 20px auto;
+position: relative;
+overflow: visible;
+}
+
+/* Original desktop layout — now wrapped */
 .desktop-layout {
 display: flex;
 flex-wrap: nowrap;
 gap: 20px;
 align-items: stretch;
-margin: 20px 0;
 width: 100%;
-max-width: 1200px;
-margin-left: auto;
-margin-right: auto;
 aspect-ratio: 2 / 1;
-
 /* 🔥 FORCE HORIZONTAL ON ALL SCREENS */
 flex-direction: row !important;
+transform-origin: top left;
 }
 
-/* 🔥 PREVENT IMAGE SECTION FROM COLLAPSING — REMOVED ENTIRE BLOCK */
-/* .image-section:empty, .image-section:has(.media-placeholder) { ... } ← DELETED */
+/* Prevent image section from collapsing */
+/* 🔥 REMOVED: .image-section:empty, ... block */
 
-/* 🔥 ENSURE 50/50 FLEXIBLE COLUMNS */
+/* Ensure 50/50 columns */
 .desktop-layout .image-section,
 .desktop-layout .options-section {
 flex: 1 1 50%;
@@ -928,41 +935,34 @@ padding: 0;
 margin: 0;
 }
 
-/* Preserve original responsive overrides but respect 50/50 */
-@media (max-width: 1024px) {
-.desktop-layout {
-gap: 12px;
-max-width: 100%;
-aspect-ratio: 2 / 1;
-}
+/* Preserve media sizing */
 .desktop-layout .image-section img,
 .desktop-layout .image-section video {
 width: 100%;
 height: 100%;
 object-fit: contain;
 }
-.desktop-layout .option button {
-font-size: 18px;
+
+/* Scale down on smaller screens */
+@media (max-width: 768px) {
+.desktop-layout-wrapper {
+width: calc(100vw - 40px); /* account for body padding */
+max-width: none;
+margin: 15px auto;
+}
+.desktop-layout {
+transform: scale(0.75);
+width: calc(100% / 0.75); /* compensate for scale */
+gap: calc(20px / 0.75);
+aspect-ratio: 2 / 1;
 }
 }
 
-@media (min-width: 1025px) {
-#quiz {
-padding: 0 40px 60px;
-max-width: 1400px;
-}
+@media (max-width: 480px) {
 .desktop-layout {
-gap: 40px;
-margin: 40px 0;
-max-width: 1200px;
-aspect-ratio: 2 / 1;
-}
-.desktop-layout img,
-.desktop-layout video {
-width: 100%;
-height: auto;
-object-fit: contain;
-margin: 0;
+transform: scale(0.6);
+width: calc(100% / 0.6);
+gap: calc(20px / 0.6);
 }
 }
 
@@ -1010,6 +1010,7 @@ justify-content: center;
 padding: 15px 60px 15px 18px;
 min-height: 0;
 box-sizing: border-box;
+font-size: clamp(14px, 2.5vw + 0.5vh, 26px);
 }
 .media-placeholder {
 display: none;
@@ -1993,7 +1994,7 @@ return div.innerHTML;
 }
 function downloadCSV(base64, filename) {
 const link = document.createElement('a');
-link.href = 'data:text/csv;base64,' + base64;
+link.href = 'text/csv;base64,' + base64;
 link.download = filename;
 link.click();
 }
@@ -2002,13 +2003,13 @@ async function testSupabase() {
 showLoading("Testing database connection...");
 try {
 // Test questions table
-const { data: qData, error: qErr } = await supabaseClient
+const {  qData, error: qErr } = await supabaseClient
 .from('questions')
 .select('id')
 .limit(1);
 if (qErr) throw new Error(`Questions table: ${qErr.message}`);
 // Test summaries
-const { data: sData, error: sErr } = await supabaseClient
+const {  sData, error: sErr } = await supabaseClient
 .from('quiz_summaries')
 .select('username')
 .limit(1);
@@ -2634,7 +2635,7 @@ const hasVisualMedia = question.media && !question.media.endsWith(".mp3");
 if (isMultipleSelect) html += `<div class="multiple-select-hint">Select ALL correct answers, then click Submit</div>`;
 else if (isSortIt) html += `<div class="sort-it-hint">Click options in correct order. Partial points for correct positions!</div>`;
 else if (question.question_type === 'FirstLetter') html += `<div class="first-letter-hint">Just enter the <strong>first letter</strong> (skip "The"/"A")</div>`;
-html += `<div class="desktop-layout">`;
+html += `<div class="desktop-layout-wrapper"><div class="desktop-layout">`;
 html += `<div class="image-section">`;
 if (isPointfull || isEliminator) {
 const options = [question.option1, question.option2, question.option3, question.option4, question.option5, question.option6].filter(opt => opt);
@@ -2672,7 +2673,7 @@ else if (question.question_type === 'FirstLetter') { placeholder = 'Enter the fi
 else if (question.question_type === 'Pointfull') { placeholder = 'Type your answer from the options'; }
 html += `<div class="input-container-wrapper"><input type="${inputType}" id="answerInput" placeholder="${placeholder}" onkeypress="handleEnterKey(event)" ${question.question_type === 'FirstLetter' ? 'maxlength="1"' : ''}></div>`;
 }
-html += `</div></div>`;
+html += `</div></div></div>`;
 let actionButtonsHtml = '';
 if (isMultipleChoice || isEliminator) actionButtonsHtml = `<div class="action-buttons"><button class="passButton" onclick="passQuestion()">Pass</button></div>`;
 else if (isMultipleSelect) {
