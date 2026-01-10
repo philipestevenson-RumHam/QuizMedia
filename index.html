@@ -918,14 +918,13 @@ padding: 0;
 margin: 0;
 transition: all 0.3s ease;
 }
-/* 🔥 REMOVED COLLAPSING RULE — THIS WAS THE BUG */
-/* .desktop-layout .image-section:empty,
+.desktop-layout .image-section:empty,
 .desktop-layout .image-section:has(.media-placeholder) {
 flex: 0 0 0;
 max-width: 0;
 overflow: hidden;
 opacity: 0;
-} */
+}
 .desktop-layout .options-section {
 flex: 1 1 50%;
 max-width: 50%;
@@ -1011,7 +1010,13 @@ max-width: 50%;
 display: flex;
 flex-direction: column;
 }
-/* 🔥 ALSO REMOVED COLLAPSING IN MEDIA QUERIES */
+.desktop-layout .image-section:empty,
+.desktop-layout .image-section:has(.media-placeholder) {
+flex: 0 0 0;
+max-width: 0;
+overflow: hidden;
+opacity: 0;
+}
 .desktop-layout .options-section {
 flex: 1 1 50%;
 min-width: 0;
@@ -1088,6 +1093,13 @@ aspect-ratio: 2 / 1;
 flex: 1 1 50%;
 min-width: 0;
 max-width: 50%;
+}
+.desktop-layout .image-section:empty,
+.desktop-layout .image-section:has(.media-placeholder) {
+flex: 0 0 0;
+max-width: 0;
+overflow: hidden;
+opacity: 0;
 }
 .desktop-layout .options-section {
 flex: 1 1 50%;
@@ -1996,7 +2008,7 @@ try {
 const { data: questions, error: qErr } = await supabaseClient.from('questions')
 .select('id, round_number, question_number, question, question_type');
 if (qErr) throw new Error(`Questions table error: ${qErr.message}`);
-const { data: answers, error: aErr } = await supabaseClient.from('quiz_results')
+const {  answers, error: aErr } = await supabaseClient.from('quiz_results')
 .select('question_number, round_number, is_correct, duration, score');
 if (aErr) throw new Error(`Results table error: ${aErr.message}`);
 document.getElementById('quiz').innerHTML = `
@@ -2086,17 +2098,17 @@ link.click();
 async function testSupabase() {
 showLoading("Testing database connection...");
 try {
-const { data: qData, error: qErr } = await supabaseClient
+const {  qData, error: qErr } = await supabaseClient
 .from('questions')
 .select('id')
 .limit(1);
 if (qErr) throw new Error(`Questions table: ${qErr.message}`);
-const { data: sData, error: sErr } = await supabaseClient
+const {  sData, error: sErr } = await supabaseClient
 .from('quiz_summaries')
 .select('username')
 .limit(1);
 if (sErr) throw new Error(`Summaries table: ${sErr.message}`);
-const { data: rData, error: rErr } = await supabaseClient
+const {  rData, error: rErr } = await supabaseClient
 .from('quiz_results')
 .select('username')
 .limit(1);
@@ -2135,12 +2147,991 @@ let selectedMultipleOptions = [];
 let ladderPoints = {};
 let wipeoutTriggered = {};
 
-// ... [rest of your existing quiz logic remains unchanged] ...
+function startQuiz() {
+const name = document.getElementById("username").value.trim();
+if (!name) {
+alert("Please enter your name");
+return;
+}
+username = name;
+if (name === ADMIN_USERNAME) {
+showAdminPanel();
+return;
+}
+showLoading('Loading quiz questions...');
+loadQuestionsFromSupabase();
+}
 
-// (For brevity, the full quiz logic is omitted here since it was already correct.
-// Only the layout/CSS was broken. The JS logic from your original OnlineVersion.txt
-// should remain intact below this point.)
+async function loadQuestionsFromSupabase() {
+try {
+const { data, error } = await supabaseClient
+.from('questions')
+.select(`
+round_number,
+round_category,
+round_image,
+round_description,
+question_number,
+question,
+low_brow,
+question_type,
+media,
+option1,
+option2,
+option3,
+option4,
+option5,
+option6,
+correct_answer,
+correct_answer2,
+correct_answer3,
+correct_answer4,
+correct_answer5,
+correct_answer6,
+explanation,
+time_allowed,
+points,
+scoring
+`)
+.order('round_number', { ascending: true })
+.order('question_number', { ascending: true });
+if (error) throw error;
+loadAllQuestions(data);
+} catch (err) {
+showError('Failed to load quiz questions', err.message || 'Please try again', startQuiz);
+}
+}
 
+function loadAllQuestions(questions) {
+allQuestions = questions;
+currentQuestionIndex = 0;
+userAnswers = [];
+totalScore = 0;
+currentRound = 0;
+roundsShown = new Set();
+ladderPoints = {};
+wipeoutTriggered = {};
+showCurrentQuestion();
+}
+
+function submit(answer) {
+stopTimer();
+if (answerSubmitted) return;
+answerSubmitted = true;
+const currentQuestion = allQuestions[currentQuestionIndex];
+const endTime = Date.now();
+const duration = (endTime - currentQuestion.startTime) / 1000;
+let scoreResult = checkAnswer(answer, currentQuestion);
+let isCorrect, questionScore;
+if (currentQuestion.question_type === 'Pointfull') {
+if (scoreResult > 0) {
+isCorrect = true;
+questionScore = Math.round(currentQuestion.points * scoreResult);
+} else {
+isCorrect = false;
+questionScore = 0;
+}
+} else if (currentQuestion.question_type === 'Impossible') {
+if (scoreResult === 1) {
+isCorrect = true;
+questionScore = currentQuestion.points;
+} else if (scoreResult === 0) {
+isCorrect = false;
+questionScore = 0;
+} else {
+isCorrect = false;
+questionScore = -currentQuestion.points;
+}
+} else if (currentQuestion.question_type === 'MultipleSelect' || currentQuestion.question_type === 'SortItPartial') {
+isCorrect = scoreResult >= 0.999;
+const baseScore = calculateScore(duration, currentQuestion.time_allowed, currentQuestion.points, currentQuestion.scoring, true);
+questionScore = Math.round(baseScore * scoreResult);
+if (!isCorrect && scoreResult < 0.5) {
+const scoringMethod = (currentQuestion.scoring || 'Timer').trim();
+if (scoringMethod === 'TimerEvil' || scoringMethod === 'FixedEvil') {
+questionScore = -currentQuestion.points;
+}
+}
+} else {
+isCorrect = scoreResult;
+questionScore = calculateScore(duration, currentQuestion.time_allowed, currentQuestion.points, currentQuestion.scoring, isCorrect);
+}
+const scoringMethod = (currentQuestion.scoring || 'Timer').trim();
+if (scoringMethod === 'Ladder' && !isCorrect) {
+const roundNum = currentQuestion.round_number;
+ladderPoints[roundNum] = [];
+}
+userAnswers.push({
+questionIndex: currentQuestionIndex,
+roundNumber: currentQuestion.round_number,
+questionNumber: currentQuestion.question_number,
+userAnswer: answer,
+correctAnswer: currentQuestion.correct_answer,
+isCorrect: isCorrect,
+score: questionScore,
+duration: duration,
+startTime: currentQuestion.startTime,
+endTime: endTime,
+partialScore: (currentQuestion.question_type === 'MultipleSelect' || currentQuestion.question_type === 'SortItPartial') ? scoreResult : null,
+questionType: currentQuestion.question_type
+});
+showAnswerFeedback(answer, isCorrect, questionScore, currentQuestion);
+}
+
+function checkAnswer(userAnswer, question) {
+const userAnswerTrimmed = userAnswer.toString().trim();
+const correctAnswers = [
+question.correct_answer,
+question.correct_answer2,
+question.correct_answer3,
+question.correct_answer4,
+question.correct_answer5,
+question.correct_answer6
+].filter(a => a).map(a => a.toString().trim().toLowerCase());
+if (question.question_type === 'FirstLetterKP' || question.question_type === 'FirstLetterKPShuffle') {
+const userLetter = userAnswerTrimmed.toLowerCase();
+return correctAnswers.some(ca => {
+const correctFirst = ca.charAt(0).toLowerCase();
+if (userLetter === 'y') return correctFirst === 'y' || correctFirst === 'z';
+return correctFirst === userLetter;
+});
+} else if (question.question_type === 'FirstLetter') {
+const userFirstLetter = userAnswerTrimmed.toLowerCase().charAt(0);
+return correctAnswers.some(ca => ca.charAt(0) === userFirstLetter);
+} else if (question.question_type === 'MultipleSelect') {
+const selectedOptions = userAnswerTrimmed.split(' / ').map(opt => opt.trim().toLowerCase());
+const sortedSelected = [...selectedOptions].sort();
+const sortedCorrect = [...correctAnswers].sort();
+if (sortedSelected.length === sortedCorrect.length) {
+const isExactMatch = sortedSelected.every((opt, i) => opt === sortedCorrect[i]);
+if (isExactMatch) return 1;
+}
+const allOptions = [
+question.option1,
+question.option2,
+question.option3,
+question.option4,
+question.option5,
+question.option6
+].filter(opt => opt).map(opt => opt.toString().trim().toLowerCase());
+if (allOptions.length === 0) return 0;
+const percentagePerOption = 1 / allOptions.length;
+let totalScore = 0;
+allOptions.forEach(option => {
+const wasSelected = selectedOptions.includes(option);
+const shouldBeSelected = correctAnswers.includes(option);
+if (wasSelected && shouldBeSelected) totalScore += percentagePerOption;
+else if (!wasSelected && !shouldBeSelected) totalScore += percentagePerOption;
+});
+return Math.max(0, Math.min(1, totalScore));
+} else if (question.question_type === 'SortIt') {
+const userSequence = userAnswerTrimmed.split(' / ').map(opt => opt.trim().toLowerCase());
+const correctSequence = correctAnswers;
+if (userSequence.length !== correctSequence.length) return false;
+for (let i = 0; i < userSequence.length; i++) {
+if (userSequence[i] !== correctSequence[i]) return false;
+}
+return true;
+} else if (question.question_type === 'SortItPartial') {
+const userSequence = userAnswerTrimmed.split(' / ').map(opt => opt.trim().toLowerCase());
+const correctSequence = correctAnswers;
+if (userSequence.length !== correctSequence.length) return 0;
+let correctPositions = 0;
+for (let i = 0; i < userSequence.length; i++) {
+if (userSequence[i] === correctSequence[i]) correctPositions++;
+}
+return correctPositions / correctSequence.length;
+} else if (question.question_type === 'Impossible') {
+if (userAnswerTrimmed.toLowerCase() === correctAnswers[0]) return 1;
+if (userAnswerTrimmed.toLowerCase() === correctAnswers[1]) return 0;
+if (userAnswerTrimmed.toLowerCase() === correctAnswers[2]) return -1;
+return 0;
+} else if (question.question_type === 'Number') {
+const userNumber = parseFloat(userAnswerTrimmed);
+return correctAnswers.some(ca => {
+const correctNumber = parseFloat(ca);
+return !isNaN(userNumber) && !isNaN(correctNumber) && userNumber === correctNumber;
+});
+} else if (question.question_type === 'Pointfull') {
+const userAnswerLower = userAnswerTrimmed.toLowerCase();
+if (correctAnswers[0] && userAnswerLower === correctAnswers[0]) return 1.0;
+if (correctAnswers[1] && userAnswerLower === correctAnswers[1]) return 1.1;
+if (correctAnswers[2] && userAnswerLower === correctAnswers[2]) return 1.2;
+if (correctAnswers[3] && userAnswerLower === correctAnswers[3]) return 1.3;
+if (correctAnswers[4] && userAnswerLower === correctAnswers[4]) return 1.4;
+if (correctAnswers[5] && userAnswerLower === correctAnswers[5]) return 1.5;
+return 0;
+} else {
+const userAnswerLower = userAnswerTrimmed.toLowerCase();
+return correctAnswers.some(ca => ca === userAnswerLower);
+}
+}
+
+function getDisplayCorrectAnswer(question) {
+if (!question) return 'Answer not available';
+const correctAnswers = [
+question.correct_answer,
+question.correct_answer2,
+question.correct_answer3,
+question.correct_answer4,
+question.correct_answer5,
+question.correct_answer6
+].filter(a => a);
+if (correctAnswers.length === 0) return question.correct_answer || '';
+if (correctAnswers.length === 1) return correctAnswers[0].toString();
+if (question.question_type === 'Pointfull') {
+const basePoints = question.points || 100;
+const pointValues = [
+basePoints,
+Math.round(basePoints * 1.1),
+Math.round(basePoints * 1.2),
+Math.round(basePoints * 1.3),
+Math.round(basePoints * 1.4),
+Math.round(basePoints * 1.5)
+];
+const emojis = ['✅', '⚡', '💎', '✨', '⭐', '🌟'];
+return correctAnswers.map((a, i) =>
+`${emojis[i]} ${a.toString()} (${pointValues[i]} pts)`
+).join(' / ');
+}
+return correctAnswers.map(a => a.toString()).join(' / ');
+}
+
+function submitInputAnswer() {
+const input = document.getElementById('answerInput');
+const answer = input.value.trim();
+if (!answer) {
+alert('Please enter an answer.');
+return;
+}
+submit(answer);
+}
+
+function passQuestion() {
+if (answerSubmitted) return;
+disableAllInputs();
+stopTimer();
+answerSubmitted = true;
+const currentQuestion = allQuestions[currentQuestionIndex];
+const endTime = Date.now();
+const duration = (endTime - currentQuestion.startTime) / 1000;
+const scoringMethod = (currentQuestion.scoring || 'Timer').trim();
+if (scoringMethod === 'Ladder') {
+const roundNum = currentQuestion.round_number;
+ladderPoints[roundNum] = [];
+}
+const questionScore = 0;
+const isCorrect = false;
+userAnswers.push({
+questionIndex: currentQuestionIndex,
+roundNumber: currentQuestion.round_number,
+questionNumber: currentQuestion.question_number,
+userAnswer: '--Player Passed--',
+correctAnswer: currentQuestion.correct_answer,
+isCorrect: isCorrect,
+score: questionScore,
+duration: duration,
+startTime: currentQuestion.startTime,
+endTime: endTime,
+partialScore: null,
+questionType: currentQuestion.question_type
+});
+showAnswerFeedback('--Player Passed--', isCorrect, questionScore, currentQuestion);
+}
+
+function handleTimeout() {
+if (answerSubmitted) return;
+disableAllInputs();
+stopTimer();
+answerSubmitted = true;
+const currentQuestion = allQuestions[currentQuestionIndex];
+const endTime = Date.now();
+const duration = (endTime - currentQuestion.startTime) / 1000;
+const scoringMethod = (currentQuestion.scoring || 'Timer').trim();
+if (scoringMethod === 'Ladder') {
+const roundNum = currentQuestion.round_number;
+ladderPoints[roundNum] = [];
+}
+const questionScore = 0;
+const isCorrect = false;
+userAnswers.push({
+questionIndex: currentQuestionIndex,
+roundNumber: currentQuestion.round_number,
+questionNumber: currentQuestion.question_number,
+userAnswer: '--Time Expired--',
+correctAnswer: currentQuestion.correct_answer,
+isCorrect: isCorrect,
+score: questionScore,
+duration: duration,
+startTime: currentQuestion.startTime,
+endTime: endTime,
+partialScore: null,
+questionType: currentQuestion.question_type
+});
+showAnswerFeedback('--Time Expired--', isCorrect, questionScore, currentQuestion);
+}
+
+function disableAllInputs() {
+document.querySelectorAll('.option button, .first-letter-kp-btn').forEach(b => b.disabled = true);
+const btns = ['multipleSelectSubmit', 'sortItSubmit', 'submitAnswerBtn', 'passAnswerBtn'];
+btns.forEach(id => {
+const el = document.getElementById(id) || document.querySelector('.' + id);
+if (el) el.disabled = true;
+});
+const input = document.getElementById('answerInput');
+if (input) input.disabled = true;
+}
+
+function calculateScore(seconds, time_allowed, points, scoringMethod, isCorrect) {
+if (!points || points <= 0) return 0;
+const maxTime = Number(time_allowed) || 30;
+const maxPoints = Number(points);
+const method = (scoringMethod || 'Timer').trim();
+switch(method) {
+case 'Wipeout':
+const currentQ = allQuestions[currentQuestionIndex];
+const rNum = currentQ.round_number;
+if (wipeoutTriggered[rNum]) return 0;
+if (isCorrect) return maxPoints;
+return 0;
+case 'Ladder':
+const currentQuestion = allQuestions[currentQuestionIndex];
+const roundNum = currentQuestion.round_number;
+if (!ladderPoints[roundNum]) ladderPoints[roundNum] = [];
+if (!isCorrect) {
+ladderPoints[roundNum] = [];
+return 0;
+}
+ladderPoints[roundNum].push(maxPoints);
+return ladderPoints[roundNum].reduce((sum, pts) => sum + pts, 0);
+case 'TimerEvil':
+if (!isCorrect) return -maxPoints;
+if (seconds >= maxTime) return 0;
+const timeRemainingEvil = Math.max(0, maxTime - seconds);
+const percentageEvil = timeRemainingEvil / maxTime;
+return Math.max(0, Math.round(maxPoints * percentageEvil));
+case 'Fixed':
+return isCorrect ? maxPoints : 0;
+case 'FixedEvil':
+return isCorrect ? maxPoints : -maxPoints;
+case 'Timer':
+default:
+if (!isCorrect) return 0;
+if (seconds >= maxTime) return 0;
+const timeRemaining = Math.max(0, maxTime - seconds);
+const percentage = timeRemaining / maxTime;
+return Math.max(0, Math.round(maxPoints * percentage));
+}
+}
+
+function submitFirstLetterKP(letterChoice) {
+if (answerSubmitted) return;
+answerSubmitted = true;
+const currentQuestion = allQuestions[currentQuestionIndex];
+const buttons = document.querySelectorAll('.first-letter-kp-btn');
+buttons.forEach(btn => {
+if (btn.textContent === letterChoice) {
+btn.classList.add('kp-selected-orange');
+} else {
+btn.classList.add('kp-disabled');
+}
+btn.style.pointerEvents = 'none';
+});
+const submittedLetter = letterChoice.charAt(0).toLowerCase();
+const letterKey = letterChoice === 'Y/Z' ? 'y' : submittedLetter;
+const correctAnswers = [
+currentQuestion.correct_answer,
+currentQuestion.correct_answer2,
+currentQuestion.correct_answer3,
+currentQuestion.correct_answer4,
+currentQuestion.correct_answer5,
+currentQuestion.correct_answer6
+].filter(a => a).map(a => a.toString().trim().toLowerCase());
+const isCorrect = correctAnswers.some(ca => {
+const correctFirst = ca.charAt(0).toLowerCase();
+if (letterKey === 'y') return correctFirst === 'y' || correctFirst === 'z';
+return correctFirst === letterKey;
+});
+setTimeout(() => {
+buttons.forEach(btn => {
+if (btn.textContent === letterChoice) {
+btn.classList.remove('kp-selected-orange');
+if (isCorrect) btn.classList.add('kp-correct');
+else btn.classList.add('kp-incorrect');
+}
+});
+setTimeout(() => {
+const endTime = Date.now();
+const duration = (endTime - currentQuestion.startTime) / 1000;
+let scoreResult = checkAnswer(letterKey, currentQuestion);
+let questionScore = calculateScore(duration, currentQuestion.time_allowed, currentQuestion.points, currentQuestion.scoring, scoreResult);
+userAnswers.push({
+questionIndex: currentQuestionIndex,
+roundNumber: currentQuestion.round_number,
+questionNumber: currentQuestion.question_number,
+userAnswer: letterKey,
+correctAnswer: currentQuestion.correct_answer,
+isCorrect: scoreResult,
+score: questionScore,
+duration: duration,
+startTime: currentQuestion.startTime,
+endTime: endTime,
+partialScore: null,
+questionType: currentQuestion.question_type
+});
+showAnswerFeedback(letterKey, scoreResult, questionScore, currentQuestion);
+}, 400);
+}, 800);
+}
+
+function showAnswerFeedback(userAnswer, isCorrect, questionScore, questionData) {
+const currentQuestion = allQuestions[currentQuestionIndex];
+if (!currentQuestion) return;
+const safeQuestionData = questionData || currentQuestion;
+if (userAnswer === '--Time Expired--') playSound('timeout');
+else if (userAnswer === '--Player Passed--') playSound('pass');
+else if (currentQuestion.question_type === 'MultipleSelect' || currentQuestion.question_type === 'SortItPartial') {
+const lastAnswer = userAnswers[userAnswers.length - 1];
+const scoreResult = lastAnswer ? lastAnswer.partialScore : 0;
+if (scoreResult >= 0.999) playSound('correct');
+else if (scoreResult > 0) playSound('partial');
+else playSound('incorrect');
+} else if (currentQuestion.question_type === 'Impossible') {
+if (isCorrect) playSound('correct');
+else if (questionScore === 0) playSound('partial');
+else playSound('incorrect');
+} else {
+playSound(isCorrect ? 'correct' : 'incorrect');
+}
+if ((currentQuestion.scoring || '').trim() === 'Wipeout' && !isCorrect &&
+userAnswer !== '--Player Passed--') {
+const roundNumber = currentQuestion.round_number;
+if (!wipeoutTriggered[roundNumber]) {
+const pointsEarnedThisRound = userAnswers
+.filter(a => a.roundNumber === roundNumber)
+.reduce((sum, a) => sum + a.score, 0);
+questionScore = -pointsEarnedThisRound;
+userAnswers.forEach(answer => {
+if (answer.roundNumber === roundNumber) answer.score = 0;
+});
+wipeoutTriggered[roundNumber] = true;
+}
+}
+totalScore += questionScore;
+const cleanup = () => {
+const els = ['.input-section', '.action-buttons', '#selectedCount', '#sortProgress'];
+els.forEach(sel => {
+const el = document.querySelector(sel);
+if (el) el.remove();
+});
+};
+const applyFinalFeedback = () => {
+cleanup();
+const isLast = currentQuestionIndex >= allQuestions.length - 1;
+let percentageFeedback = '';
+if (currentQuestion.question_type === 'MultipleSelect' || currentQuestion.question_type === 'SortItPartial') {
+const lastAnswer = userAnswers[userAnswers.length - 1];
+const scoreResult = lastAnswer ? (lastAnswer.partialScore || 0) : 0;
+const percentCorrect = Math.round(scoreResult * 100);
+let feedbackColor = '#28a745', feedbackIcon = '✅';
+if (percentCorrect === 100) feedbackIcon = '🎉';
+else if (percentCorrect >= 75) {}
+else if (percentCorrect >= 50) { feedbackColor = '#ffc107'; feedbackIcon = '⚠️'; }
+else if (percentCorrect > 0) { feedbackColor = '#ff8c00'; feedbackIcon = '🟡'; }
+else { feedbackColor = '#dc3545'; feedbackIcon = '❌'; }
+percentageFeedback = `<div style="text-align:center;font-size:22px;font-weight:bold;color:${feedbackColor};margin:15px 0;padding:15px;background:rgba(255,255,255,0.9);border-radius:10px;border:2px solid ${feedbackColor};">${feedbackIcon} You got ${percentCorrect}% of this question correct</div>`;
+}
+const correctOrder = getDisplayCorrectAnswer(safeQuestionData);
+let labelText = 'Correct Answer:';
+if (currentQuestion.question_type === 'SortIt' || currentQuestion.question_type === 'SortItPartial') {
+labelText = isCorrect ? 'Correct Order!' : 'Correct Order:';
+} else if (currentQuestion.question_type === 'MultipleSelect') {
+labelText = 'Correct Answers:';
+} else if (currentQuestion.question_type === 'Impossible') {
+const correctAnswers = [safeQuestionData.correct_answer, safeQuestionData.correct_answer2, safeQuestionData.correct_answer3].filter(a => a);
+if (correctAnswers.length >= 3) {
+labelText = `✅ Correct: ${correctAnswers[0]}<br>🚫 Zero Points: ${correctAnswers[1]}<br>💀 Negative: ${correctAnswers[2]}`;
+}
+}
+let feedbackHtml = percentageFeedback;
+feedbackHtml += `<div id="scoreDisplay"><span id="questionScore" style="${questionScore < 0 ? 'background-color:#dc3545;' : ''}">Question Score: ${questionScore < 0 ? questionScore : '+' + questionScore}${(currentQuestion.scoring || '').trim() === 'Wipeout' && questionScore < 0 ? ' 💥 WIPEOUT!' : ''}</span><span id="totalScore">Total Score: ${totalScore}</span><button id="nextButton" onclick="proceedToNext()">${isLast ? 'Finish Quiz' : 'Next Question'}</button></div>`;
+if (currentQuestion.question_type === 'Impossible') {
+let bgColor = '#d4edda', borderColor = '#28a745', textColor = '#155724';
+if (!isCorrect) {
+if (questionScore === 0) { bgColor = '#fff3cd'; borderColor = '#ffc107'; textColor = '#856404'; }
+else { bgColor = '#f8d7da'; borderColor = '#dc3545'; textColor = '#721c24'; }
+}
+feedbackHtml += `<div class="correctAnswerDisplay" style="background-color:${bgColor};border-color:${borderColor};color:${textColor};"><strong>${labelText}</strong></div>`;
+} else {
+feedbackHtml += `<div class="correctAnswerDisplay" style="${isCorrect ? 'background-color:#d4edda;border-color:#28a745;color:#155724;' : 'background-color:#f8d7da;border-color:#dc3545;color:#721c24;'}"><strong>${labelText}</strong>${currentQuestion.question_type !== 'Impossible' ? correctOrder : ''}</div>`;
+}
+if (safeQuestionData.explanation?.trim()) {
+feedbackHtml += `<div id="explanation"><strong>Explanation:</strong> ${safeQuestionData.explanation}</div>`;
+}
+document.getElementById('quiz').insertAdjacentHTML('beforeend', feedbackHtml);
+};
+if (currentQuestion.question_type === 'Multiple') {
+setTimeout(() => {
+const buttons = document.querySelectorAll('.option button');
+const correctAnswers = [questionData.correct_answer, questionData.correct_answer2, questionData.correct_answer3, questionData.correct_answer4, questionData.correct_answer5, questionData.correct_answer6].filter(a => a).map(a => a.toString().trim());
+const userPick = userAnswer.trim();
+buttons.forEach(btn => {
+btn.disabled = true;
+const currentFontSize = window.getComputedStyle(btn).fontSize;
+const text = btn.textContent.trim();
+const isCorrectOption = correctAnswers.includes(text);
+const wasSelected = (text === userPick);
+if (isCorrectOption && wasSelected) btn.style = `background-color:#28a745;border-color:#1e7e34;color:white;font-size:${currentFontSize};`;
+else if (isCorrectOption && !wasSelected) btn.style = `background-color:#6f9e70;border-color:#5a7d5b;color:white;font-size:${currentFontSize};`;
+else if (!isCorrectOption && wasSelected) btn.style = `background-color:#dc3545;border-color:#bd2130;color:white;font-size:${currentFontSize};`;
+else btn.style = `background-color:#6c757d;border-color:#5a6268;color:white;font-size:${currentFontSize};`;
+});
+applyFinalFeedback();
+}, 1000);
+} else {
+applyFinalFeedback();
+}
+}
+
+function proceedToNext() {
+stopTimer();
+answerSubmitted = false;
+resetMultipleSelectState();
+currentQuestionIndex++;
+if (currentQuestionIndex >= allQuestions.length) {
+finishQuiz();
+} else {
+showCurrentQuestion();
+}
+}
+
+function showRoundDescription(roundNumber) {
+const firstQuestionOfRound = allQuestions.find(q => q.round_number === roundNumber);
+if (!firstQuestionOfRound || !firstQuestionOfRound.round_description?.trim()) {
+showActualQuestion();
+return;
+}
+let scoringEmoji = '🔢', scoringDisplay = 'Timer Based', scoringDesc = 'Faster = more points! Score decreases as time runs out.';
+const scoringType = firstQuestionOfRound.scoring || 'Timer';
+switch(scoringType.trim()) {
+case 'TimerEvil': scoringEmoji = '🔢💀'; scoringDesc = 'Timer scoring with NEGATIVE points for wrong answers!'; scoringDisplay = 'Timer Based (Evil)'; break;
+case 'Ladder': scoringEmoji = '📈'; scoringDesc = 'Points accumulate! One wrong answer resets to zero. Pass and Timed Out treated as wrong'; scoringDisplay = 'Ladder!'; break;
+case 'Wipeout': scoringEmoji = '💥'; scoringDesc = 'One wrong answer = entire round becomes 0!'; scoringDisplay = 'Wipeout'; break;
+case 'Fixed': scoringEmoji = '🎯'; scoringDesc = 'Full points if correct. Time doesn\'t matter.'; scoringDisplay = 'Fixed Points'; break;
+case 'FixedEvil': scoringEmoji = '🎯💀'; scoringDesc = 'Fixed points with NEGATIVE penalty for wrong answers!'; scoringDisplay = 'Fixed Points (Evil)'; break;
+}
+let html = firstQuestionOfRound.round_image ? `<img src="${firstQuestionOfRound.round_image}" alt="Round Image">` : '';
+html += `<div class="cover-and-round-container"><div class="round-description-page"><h2>Round ${roundNumber}: ${firstQuestionOfRound.round_category}</h2><div class="scoring-info" style="margin:20px 0;"><h4>${scoringEmoji} Scoring: ${scoringDisplay}</h4><p>${scoringDesc}</p></div><div class="round-description-content">${firstQuestionOfRound.round_description}</div><button class="start-round-button" onclick="showActualQuestion()">Start Round ${roundNumber}</button></div></div>`;
+document.getElementById("quiz").innerHTML = html;
+}
+
+function showActualQuestion() {
+if (currentQuestionIndex >= allQuestions.length) {
+document.getElementById("quiz").innerHTML = '<div style="color:red;">Error loading question. Please refresh.</div>';
+return;
+}
+const question = allQuestions[currentQuestionIndex];
+question.startTime = Date.now();
+let html = question.round_image ? `<img src="${question.round_image}" alt="Round Image">` : '';
+html += `<h3>Round ${question.round_number}: ${question.round_category || 'Quiz Round'}</h3><div class="question"><strong class="question-number">Q${question.question_number}:</strong>${question.question || 'Question not available'}</div>`;
+const isMultipleChoice = ['Multiple','Impossible'].includes(question.question_type);
+const isMultipleSelect = question.question_type === 'MultipleSelect';
+const isSortIt = ['SortIt','SortItPartial'].includes(question.question_type);
+const isFirstLetterKP = ['FirstLetterKP','FirstLetterKPShuffle'].includes(question.question_type);
+const isPointfull = question.question_type === 'Pointfull';
+const isEliminator = question.question_type === 'Eliminator';
+const hasVisualMedia = question.media && !question.media.endsWith(".mp3");
+if (isMultipleSelect) html += `<div class="multiple-select-hint">Select ALL correct answers, then click Submit</div>`;
+else if (isSortIt) html += `<div class="sort-it-hint">Click options in correct order. Partial points for correct positions!</div>`;
+else if (question.question_type === 'FirstLetter') html += `<div class="first-letter-hint">Just enter the <strong>first letter</strong> (skip "The"/"A")</div>`;
+html += `<div class="desktop-layout">`;
+html += `<div class="image-section">`;
+if (isPointfull || isEliminator) {
+const options = [question.option1, question.option2, question.option3, question.option4, question.option5, question.option6].filter(opt => opt);
+const listClass = isPointfull ? 'pointfull-options-list' : 'eliminator-options-list';
+const itemClass = isPointfull ? 'pointfull-option-item' : 'eliminator-option-item';
+html += `<div class="${listClass}">${options.map(opt => `<div class="${itemClass}">${opt}</div>`).join('')}</div>`;
+} else if (question.media && question.media.endsWith(".mp3")) {
+html += `<audio autoplay src="${question.media}"></audio><div class="media-placeholder"></div>`;
+} else if (hasVisualMedia) {
+html += question.media.endsWith(".mp4") ? `<video autoplay src="${question.media}"></video>` : `<img src="${question.media}" alt="Question Media">`;
+} else {
+html += `<div class="media-placeholder"></div>`;
+}
+html += `</div><div class="options-section">`;
+if (isFirstLetterKP) {
+let letters = 'ABCDEFGHIJKLMNOPQRSTUVWX'.split('').concat(['Y/Z']);
+if (question.question_type === 'FirstLetterKPShuffle') letters = shuffleArray(letters);
+html += `<div class="first-letter-kp-wrapper"><div class="first-letter-kp-grid">${letters.map(letter => `<button class="first-letter-kp-btn" onclick="submitFirstLetterKP('${letter}')">${letter}</button>`).join('')}</div></div>`;
+} else if (isMultipleChoice || isMultipleSelect || isSortIt || isEliminator) {
+const options = [question.option1, question.option2, question.option3, question.option4, question.option5, question.option6];
+html += `<div class="options-container">`;
+options.forEach(opt => {
+if (opt) {
+const safeOpt = opt.toString().replace(/'/g, "\\'");
+if (isMultipleChoice || isEliminator) html += `<div class="option"><button onclick="submit('${safeOpt}')">${opt}</button></div>`;
+else if (isMultipleSelect) html += `<div class="option"><button onclick="toggleMultipleSelectOption(this, '${safeOpt}')">${opt}</button></div>`;
+else if (isSortIt) html += `<div class="option"><button onclick="toggleSortItOption(this, '${safeOpt}')">${opt}</button></div>`;
+}
+});
+html += `</div>`;
+} else {
+let inputType = 'text', placeholder = 'Enter your answer';
+if (question.question_type === 'Number') { inputType = 'number'; placeholder = 'Enter a number'; }
+else if (question.question_type === 'FirstLetter') { placeholder = 'Enter the first letter'; }
+else if (question.question_type === 'Pointfull') { placeholder = 'Type your answer from the options'; }
+html += `<div class="input-container-wrapper"><input type="${inputType}" id="answerInput" placeholder="${placeholder}" onkeypress="handleEnterKey(event)" ${question.question_type === 'FirstLetter' ? 'maxlength="1"' : ''}></div>`;
+}
+html += `</div></div>`;
+let actionButtonsHtml = '';
+if (isMultipleChoice || isEliminator) actionButtonsHtml = `<div class="action-buttons"><button class="passButton" onclick="passQuestion()">Pass</button></div>`;
+else if (isMultipleSelect) {
+actionButtonsHtml = `<div class="selected-count" id="selectedCount">0 answers selected</div><div class="action-buttons"><button id="multipleSelectSubmit" class="multiple-select-submit" onclick="submitMultipleSelectAnswers()" disabled>Submit</button><button class="passButton" onclick="passQuestion()">Pass</button></div>`;
+} else if (isSortIt) {
+actionButtonsHtml = `<div class="sort-progress" id="sortProgress">0 items ordered</div><div class="action-buttons"><button id="sortItSubmit" class="sort-it-submit" onclick="submitSortItAnswers()" disabled>Submit</button><button class="passButton" onclick="passQuestion()">Pass</button></div>`;
+} else if (!isFirstLetterKP) {
+actionButtonsHtml = `<div class="action-buttons"><button id="submitAnswerBtn" class="submitButton" onclick="submitInputAnswer()">Submit</button><button id="passAnswerBtn" class="passButton" onclick="passQuestion()">Pass</button></div>`;
+} else {
+actionButtonsHtml = `<div class="action-buttons"><button class="passButton" onclick="passQuestion()">Pass</button></div>`;
+}
+html += actionButtonsHtml;
+document.getElementById("quiz").innerHTML = html;
+startQuestionTimer(question);
+if (isEliminator) setTimeout(() => runEliminator(question), 500);
+if (!isMultipleChoice && !isMultipleSelect && !isSortIt && !isFirstLetterKP && !isEliminator) {
+setTimeout(() => document.getElementById('answerInput').focus(), 100);
+}
+// Adjust font size for option buttons to fit text
+if (isMultipleChoice || isMultipleSelect || isSortIt || isEliminator) {
+setTimeout(() => adjustOptionButtonFontSize(), 50);
+}
+}
+
+function showCurrentQuestion() {
+const question = allQuestions[currentQuestionIndex];
+if (question.round_number !== currentRound && !roundsShown.has(question.round_number)) {
+currentRound = question.round_number;
+roundsShown.add(question.round_number);
+showRoundDescription(question.round_number);
+} else {
+showActualQuestion();
+}
+}
+
+// FINISH QUIZ — Supabase version
+async function finishQuiz() {
+stopTimer();
+showLoading('Calculating your results...');
+try {
+// Save results first
+await saveResultsToSupabase(username, userAnswers, sessionId);
+// Then display results (without saving again)
+const results = getDetailedResultsLocal(userAnswers);
+displayDetailedResults(results, false);
+} catch (err) {
+console.error('Fallback to basic results:', err);
+await saveResultsToSupabase(username, userAnswers, sessionId);
+showBasicResults();
+}
+}
+
+function getDetailedResultsLocal(userAnswers) {
+const roundData = {};
+let totalCorrect = 0, totalQuestions = userAnswers.length, totalTime = 0, totalScore = 0;
+userAnswers.forEach(answer => {
+const roundNum = answer.roundNumber;
+if (!roundData[roundNum]) {
+const q = allQuestions.find(qq => qq.round_number === roundNum);
+roundData[roundNum] = {
+roundNumber: roundNum,
+questions: [],
+correctCount: 0,
+totalQuestions: 0,
+totalTime: 0,
+totalScore: 0,
+roundCategory: q ? q.round_category : 'Round ' + roundNum,
+roundDescription: q ? q.round_description : ''
+};
+}
+const originalQ = allQuestions.find(qq => qq.round_number === answer.roundNumber && qq.question_number === answer.questionNumber);
+const enhancedAnswer = {
+...answer,
+questionText: originalQ ? originalQ.question : '',
+questionType: originalQ ? originalQ.question_type : '',
+allCorrectAnswers: originalQ ? [
+originalQ.correct_answer,
+originalQ.correct_answer2,
+originalQ.correct_answer3,
+originalQ.correct_answer4,
+originalQ.correct_answer5,
+originalQ.correct_answer6
+].filter(ans => ans) : [],
+explanation: originalQ ? originalQ.explanation : ''
+};
+roundData[roundNum].questions.push(enhancedAnswer);
+roundData[roundNum].totalQuestions++;
+roundData[roundNum].totalTime += answer.duration;
+roundData[roundNum].totalScore += answer.score;
+if (answer.isCorrect) {
+roundData[roundNum].correctCount++;
+totalCorrect++;
+}
+totalTime += answer.duration;
+totalScore += answer.score;
+});
+const rounds = Object.values(roundData).sort((a, b) => a.roundNumber - b.roundNumber);
+return {
+summary: {
+totalQuestions,
+totalCorrect,
+totalTime: Math.round(totalTime * 100) / 100,
+totalScore,
+accuracy: Math.round((totalCorrect / totalQuestions) * 100),
+averageTime: Math.round((totalTime / totalQuestions) * 100) / 100
+},
+rounds
+};
+}
+
+async function saveResultsToSupabase(username, answers, sessionId) {
+try {
+const totalScore = answers.reduce((sum, a) => sum + a.score, 0);
+const resultsRows = answers.map(a => {
+const correctAnswers = [
+a.correctAnswer,
+a.correctAnswer2,
+a.correctAnswer3,
+a.correctAnswer4,
+a.correctAnswer5,
+a.correctAnswer6
+].filter(x => x);
+return {
+username,
+session_id: sessionId,
+round_number: a.roundNumber,
+question_number: a.questionNumber,
+question: a.question,
+user_answer: a.userAnswer,
+correct_answer: correctAnswers.join(' / '),
+is_correct: a.isCorrect,
+score: a.score,
+duration: a.duration,
+total_score: totalScore,
+question_type: a.questionType
+};
+});
+const { error: resError } = await supabaseClient.from('quiz_results').insert(resultsRows);
+const totalCorrect = answers.filter(a => a.isCorrect).length;
+const totalTime = answers.reduce((sum, a) => sum + a.duration, 0);
+const questionsAnswered = answers.length;
+const accuracy = Math.round((totalCorrect / questionsAnswered) * 100);
+const avgScore = questionsAnswered > 0 ? totalScore / questionsAnswered : 0;
+const avgTime = questionsAnswered > 0 ? totalTime / questionsAnswered : 0;
+const { error: sumError } = await supabaseClient.from('quiz_summaries').insert([{
+username,
+session_id: sessionId,
+total_score: totalScore,
+questions_answered: questionsAnswered,
+avg_score_per_question: parseFloat(avgScore.toFixed(2)),
+total_correct: totalCorrect,
+accuracy,
+total_time: parseFloat(totalTime.toFixed(2)),
+avg_time: parseFloat(avgTime.toFixed(2))
+}]);
+} catch (err) {
+console.error('Save failed:', err);
+}
+}
+
+function showBasicResults() {
+const correctCount = userAnswers.filter(a => a.isCorrect).length;
+const totalQuestions = userAnswers.length;
+const accuracy = Math.round((correctCount / totalQuestions) * 100);
+document.getElementById("quiz").innerHTML = `<div class="results-container"><div class="results-header"><h2>🎉 Quiz Complete! 🎉</h2><p style="font-size:18px;color:#666;margin-bottom:30px;">Well done, ${username}!</p></div><div class="summary-stats"><div class="stat-card"><span class="stat-value">${totalScore}</span><span class="stat-label">Total Score</span></div><div class="stat-card"><span class="stat-value">${correctCount}/${totalQuestions}</span><span class="stat-label">Correct</span></div><div class="stat-card"><span class="stat-value">${accuracy}%</span><span class="stat-label">Accuracy</span></div></div><p style="text-align:center;color:#666;margin:20px 0;">Your results have been saved!</p><button class="restart-button" onclick="location.reload()">🚪 Exit Quiz</button></div>`;
+saveResultsToSupabase(username, userAnswers, sessionId);
+}
+
+function displayDetailedResults(results, shouldSave = false) {
+if (!results || !results.summary || !results.rounds) {
+document.getElementById("quiz").innerHTML = `<div class="results-container"><div class="results-header"><h2>Quiz Complete!</h2><div class="stat-card" style="display:inline-block;margin:20px;"><span class="stat-value">${totalScore}</span><span class="stat-label">Total Score</span></div></div><p>Thank you for taking the RumHam Quiz!</p><button class="restart-button" onclick="location.reload()">Take Quiz Again</button></div>`;
+return;
+}
+const { summary, rounds } = results;
+let insights = [];
+if (summary.accuracy >= 80) insights.push("🎉 Excellent accuracy! You really know your stuff!");
+else if (summary.accuracy >= 60) insights.push("👍 Good performance! Room for improvement but solid overall.");
+else insights.push("📚 Lots of room to grow - practice makes perfect!");
+if (summary.averageTime <= 5) insights.push("⚡ Lightning fast! You answered quickly and efficiently.");
+else if (summary.averageTime <= 10) insights.push("🤔 Thoughtful pace - you took time to consider your answers.");
+else insights.push("🌍 Take your time, but maybe trust your instincts more!");
+if (rounds.length > 1) {
+const sortedRounds = [...rounds].sort((a, b) => b.correctCount - a.correctCount);
+insights.push(`🏆 Best round: ${sortedRounds[0].roundCategory} (${sortedRounds[0].correctCount}/${sortedRounds[0].totalQuestions} correct)`);
+insights.push(`🩸 Challenge round: ${sortedRounds[sortedRounds.length - 1].roundCategory} - room for improvement!`);
+}
+let html = `<div class="results-container"><div class="results-header"><h2>🎉 Quiz Complete! 🎉</h2><p style="font-size:18px;color:#666;margin-bottom:30px;">Well done, ${username}! Here's how you performed:</p></div><div class="summary-stats"><div class="stat-card"><span class="stat-value">${summary.totalScore}</span><span class="stat-label">Total Score</span></div><div class="stat-card"><span class="stat-value">${summary.totalCorrect}/${summary.totalQuestions}</span><span class="stat-label">Correct</span></div><div class="stat-card"><span class="stat-value">${summary.accuracy}%</span><span class="stat-label">Accuracy</span></div><div class="stat-card"><span class="stat-value">${summary.totalTime}s</span><span class="stat-label">Total Time</span></div><div class="stat-card"><span class="stat-value">${summary.averageTime}s</span><span class="stat-label">Avg per Q</span></div></div><div class="performance-insights"><h4>📊 Performance Insights</h4>${insights.map(i => `<div class="insight">${i}</div>`).join('')}</div><div class="round-breakdown"><h3>📋 Round by Round Breakdown</h3>`;
+rounds.forEach(round => {
+const accuracy = Math.round((round.correctCount / round.totalQuestions) * 100);
+const avgTime = Math.round((round.totalTime / round.totalQuestions) * 100) / 100;
+html += `<div class="round-card"><div class="round-header"><div class="round-title">Round ${round.roundNumber}: ${round.roundCategory}</div><div class="round-stats"><div class="round-stat"><span class="round-stat-value">${round.totalScore}</span><span class="round-stat-label">Score</span></div><div class="round-stat"><span class="round-stat-value">${round.correctCount}/${round.totalQuestions}</span><span class="round-stat-label">Correct</span></div><div class="round-stat"><span class="round-stat-value">${accuracy}%</span><span class="round-stat-label">Accuracy</span></div><div class="round-stat"><span class="round-stat-value">${avgTime}s</span><span class="round-stat-label">Avg Time</span></div></div></div><div class="questions-detail">`;
+const sortedQuestions = round.questions.sort((a, b) => a.questionNumber - b.questionNumber);
+sortedQuestions.forEach(q => {
+const timeDisplay = Math.round(q.duration * 100) / 100;
+let correctClass = q.isCorrect ? 'correct' : (q.score > 0 ? 'partial' : 'incorrect');
+let icon = q.isCorrect ? '✅' : (q.score > 0 ? '🟡' : '❌');
+const originalQuestion = allQuestions.find(aq => aq.round_number === q.roundNumber && aq.question_number === q.questionNumber);
+const questionText = q.questionText || (originalQuestion ? originalQuestion.question : 'Question text not available');
+html += `<div class="question-item ${correctClass}"><div class="question-header"><div class="question-number-header">${icon} Question ${q.questionNumber}</div><div><div class="question-score-header">${q.score > 0 ? '+' : ''}${q.score} pts</div><div class="question-time-header">${timeDisplay}s</div></div></div><div class="question-content"><div class="question-text">${questionText}</div><div class="answer-section"><div class="answer-row"><span class="answer-label">Your Answer:</span><span class="answer-value">${q.userAnswer || 'No answer'}</span></div><div class="answer-row"><span class="answer-label">Correct:</span><span class="answer-value">${q.questionType === 'Impossible' && q.allCorrectAnswers && q.allCorrectAnswers.length >= 3 ? `✅ ${q.allCorrectAnswers[0]} | 🚫 ${q.allCorrectAnswers[1]} | 💀 ${q.allCorrectAnswers[2]}` : (q.allCorrectAnswers && q.allCorrectAnswers.length > 1 ? q.allCorrectAnswers.join(' / ') : (q.correctAnswer || 'Not available'))}</span></div></div>${q.explanation?.trim() ? `<div class="question-explanation"><span class="question-explanation-label">💡 Explanation:</span><div class="question-explanation-text">${q.explanation}</div></div>` : ''}</div></div>`;
+});
+html += `</div></div>`;
+});
+html += `</div><button class="restart-button" onclick="location.reload()">🚪🚨 Exit Quiz</button><p style="text-align:center;margin-top:30px;color:#666;font-style:italic;">Thanks for playing the RumHam Quiz! 💀</p></div>`;
+document.getElementById("quiz").innerHTML = html;
+// Only save if explicitly requested (not needed since finishQuiz already saved)
+if (shouldSave) {
+saveResultsToSupabase(username, userAnswers, sessionId);
+}
+}
+
+// Helper functions
+function toggleMultipleSelectOption(button, optionValue) {
+if (answerSubmitted) return;
+const index = selectedMultipleOptions.indexOf(optionValue);
+if (index > -1) {
+selectedMultipleOptions.splice(index, 1);
+button.classList.remove('selected');
+button.style = "";
+} else {
+selectedMultipleOptions.push(optionValue);
+button.classList.add('selected');
+button.style = "background-color:#e07b00;color:white;border-color:#b85f00;";
+}
+updateSelectedCount();
+}
+
+function updateSelectedCount() {
+const el = document.getElementById('selectedCount');
+const btn = document.getElementById('multipleSelectSubmit');
+if (el) el.textContent = `${selectedMultipleOptions.length} answer${selectedMultipleOptions.length !== 1 ? 's' : ''} selected`;
+if (btn) btn.disabled = selectedMultipleOptions.length === 0;
+}
+
+function submitMultipleSelectAnswers() {
+if (answerSubmitted || selectedMultipleOptions.length === 0) return;
+submit(selectedMultipleOptions.join(' / '));
+selectedMultipleOptions = [];
+}
+
+function toggleSortItOption(button, optionValue) {
+if (answerSubmitted) return;
+const existingIndex = sortItSequence.findIndex(item => item.option === optionValue);
+if (existingIndex > -1) {
+const removedItem = sortItSequence.splice(existingIndex, 1)[0];
+button.innerHTML = optionValue;
+button.classList.remove('sort-selected');
+button.style = "";
+sortItSequence.forEach((item, i) => {
+if (item.order > removedItem.order) {
+item.order--;
+const btns = document.querySelectorAll('.option button');
+btns.forEach(b => {
+if (b.textContent.includes(item.option)) {
+b.innerHTML = `<span class="sort-number">${item.order}</span>${item.option}`;
+}
+});
+}
+});
+sortItCounter--;
+} else {
+sortItCounter++;
+sortItSequence.push({ option: optionValue, order: sortItCounter });
+button.innerHTML = `<span class="sort-number">${sortItCounter}</span>${optionValue}`;
+button.classList.add('sort-selected');
+button.style = "background-color:#e07b00;color:white;border-color:#b85f00;";
+}
+updateSortItProgress();
+}
+
+function updateSortItProgress() {
+const el = document.getElementById('sortProgress');
+const btn = document.getElementById('sortItSubmit');
+if (el) el.textContent = `${sortItSequence.length} item${sortItSequence.length !== 1 ? 's' : ''} ordered`;
+if (btn) btn.disabled = sortItSequence.length === 0;
+}
+
+function submitSortItAnswers() {
+if (answerSubmitted || sortItSequence.length === 0) return;
+const ordered = [...sortItSequence].sort((a, b) => a.order - b.order);
+submit(ordered.map(item => item.option).join(' / '));
+resetSortItState();
+}
+
+function resetSortItState() {
+sortItSequence = [];
+sortItCounter = 0;
+}
+
+function resetMultipleSelectState() {
+selectedMultipleOptions = [];
+resetSortItState();
+}
+
+function startQuestionTimer(question) {
+timeRemaining = parseInt(question.time_allowed) || 30;
+createTimerDisplay();
+updateTimerDisplay();
+countdownInterval = setInterval(() => {
+timeRemaining--;
+updateTimerDisplay();
+if (timeRemaining <= 0) stopTimer();
+}, 1000);
+}
+
+function createTimerDisplay() {
+const existing = document.getElementById('timerDisplay');
+if (existing) existing.remove();
+const div = document.createElement('div');
+div.id = 'timerDisplay';
+div.innerHTML = `🔢 <span id="timerSeconds">${timeRemaining}</span>s`;
+document.body.appendChild(div);
+}
+
+function updateTimerDisplay() {
+const timerEl = document.getElementById('timerSeconds');
+const display = document.getElementById('timerDisplay');
+const q = allQuestions[currentQuestionIndex];
+if (timerEl && display) {
+timerEl.textContent = timeRemaining;
+display.className = '';
+if (timeRemaining <= 5) display.classList.add('critical');
+else if (timeRemaining <= 10) display.classList.add('warning');
+const initialTime = parseInt(q.time_allowed) || 30;
+const halfway = Math.ceil(initialTime / 2);
+if (timeRemaining <= halfway && q.low_brow?.trim()) showLowBrowHint(q.low_brow);
+if (timeRemaining <= 0) {
+display.innerHTML = `🔢 Time's Up!`;
+if (!answerSubmitted) handleTimeout();
+}
+}
+}
+
+function stopTimer() {
+if (countdownInterval) clearInterval(countdownInterval);
+countdownInterval = null;
+const display = document.getElementById('timerDisplay');
+if (display) display.remove();
+}
+
+function showLowBrowHint(text) {
+if (document.getElementById('lowBrowHint')) return;
+const div = document.createElement('div');
+div.id = 'lowBrowHint';
+div.className = 'question';
+div.innerHTML = text;
+const quiz = document.getElementById('quiz');
+const qDiv = quiz.querySelector('.question');
+if (qDiv) quiz.insertBefore(div, qDiv.nextSibling);
+}
 </script>
 </body>
 </html>
