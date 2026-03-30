@@ -536,31 +536,6 @@
     .option button:active:not(:disabled) { transform: translateY(0); }
     .option button:disabled { cursor: not-allowed; opacity: 0.85; }
 
-    /* Eliminator — wrong answer removal animation */
-    @keyframes eliminateShake {
-      0%   { transform: translateX(0) scale(1); }
-      20%  { transform: translateX(-6px) scale(1.02); }
-      40%  { transform: translateX(6px) scale(1.02); }
-      60%  { transform: translateX(-4px); }
-      80%  { transform: translateX(4px); }
-      100% { transform: translateX(0) scale(1); }
-    }
-    @keyframes eliminateFade {
-      0%   { opacity: 1; background: var(--btn-bg); }
-      40%  { background: #7a0000; opacity: 0.8; }
-      100% { opacity: 0.18; background: #1a1a1a; }
-    }
-    .option.eliminating button {
-      animation: eliminateShake 0.35s ease, eliminateFade 0.6s ease forwards !important;
-      pointer-events: none !important;
-    }
-    .option.eliminated {
-      visibility: hidden !important; /* hides content but keeps space */
-    }
-    .option.eliminating button {
-      /* keep space during animation too */
-    }
-
     /* Sort-It position number badge */
     .sort-number {
       position: absolute;
@@ -1227,7 +1202,6 @@
     let username = '';
     let allQuestions = [];
     let currentQuestionIndex = 0;
-    let eliminatorTimers = [];
     let userAnswers = [];
     let totalScore = 0;
     let sessionId = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -1256,7 +1230,6 @@
 
     function setQuizHTML(html) {
       document.getElementById('quiz').innerHTML = html;
-      window.scrollTo(0, 0);
     }
 
     function showLoading(msg = 'Loading…') {
@@ -1402,8 +1375,7 @@
       const q = allQuestions[currentQuestionIndex];
       q.startTime = Date.now();
 
-      const isEliminator  = q.questionType === 'Eliminator';
-      const isMultiple    = q.questionType === 'Multiple' || q.questionType === 'Impossible' || isEliminator;
+      const isMultiple    = q.questionType === 'Multiple' || q.questionType === 'Impossible';
       const isMultiSel    = q.questionType === 'MultipleSelect' || q.questionType === 'Multiple Select';
       const isSortIt      = q.questionType === 'SortIt' || q.questionType === 'SortItPartial';
       const isKP          = q.questionType === 'FirstLetterKP' || q.questionType === 'FirstLetterKPShuffle';
@@ -1421,9 +1393,7 @@
       `;
 
       // Hints
-      if (isEliminator)
-        html += `<div class="hint-banner">⚡ Wrong answers will be <strong>eliminated</strong> over time — answer sooner for more points!</div>`;
-      else if (isMultiSel)
+      if (isMultiSel)
         html += `<div class="hint-banner">Select <strong>ALL</strong> correct answers, then click Submit</div>`;
       else if (q.questionType === 'SortIt')
         html += `<div class="hint-banner">Click the options <strong>in the correct order</strong>. Click again to remove.</div>`;
@@ -1527,7 +1497,6 @@
 
       setQuizHTML(html);
       startQuestionTimer(q);
-      if (isEliminator) startEliminatorSequence(q);
       // No autofocus — prevents page jumping before user can read the question
     }
 
@@ -2480,53 +2449,8 @@
       }
     }
 
-    /* ============================================================
-       ELIMINATOR — progressive wrong-answer removal
-       ============================================================ */
-    function startEliminatorSequence(q) {
-      const correct = (q.correctAnswer || '').toString().trim().toLowerCase();
-      const opts = (Array.isArray(q.options) && q.options.length > 0)
-        ? q.options.filter(o => o != null && o.toString().trim() !== '')
-        : [q.option1, q.option2, q.option3, q.option4, q.option5, q.option6]
-            .filter(o => o != null && o.toString().trim() !== '');
-
-      // All wrong options, shuffled so eliminations are random each time
-      const wrongOpts = shuffleArray(
-        opts.filter(o => o.toString().trim().toLowerCase() !== correct)
-      );
-
-      // Remove all but ONE wrong option (so we're left with 1 wrong + correct)
-      const toEliminate = wrongOpts.slice(0, wrongOpts.length - 1);
-      if (toEliminate.length === 0) return; // nothing to eliminate
-
-      const totalMs = (parseInt(q.timeAllowed) || 30) * 1000;
-      // Spread eliminations evenly, leaving a gap at start and end
-      const interval = totalMs / (toEliminate.length + 1);
-
-      toEliminate.forEach((optText, idx) => {
-        const t = setTimeout(() => {
-          if (!answerSubmitted) eliminateOption(optText);
-        }, interval * (idx + 1));
-        eliminatorTimers.push(t);
-      });
-    }
-
-    function eliminateOption(optText) {
-      const buttons = document.querySelectorAll('.options-container .option button');
-      buttons.forEach(btn => {
-        if (btn.textContent.trim() === optText.toString().trim()) {
-          const optDiv = btn.closest('.option');
-          if (!optDiv || optDiv.classList.contains('eliminated')) return;
-          optDiv.classList.add('eliminating');
-          setTimeout(() => optDiv.classList.add('eliminated'), 600);
-        }
-      });
-    }
-
     function stopTimer() {
       if (countdownInterval) clearInterval(countdownInterval);
-      eliminatorTimers.forEach(t => clearTimeout(t));
-      eliminatorTimers = [];
       countdownInterval = null;
       const display = document.getElementById('timerDisplay');
       if (display) display.remove();
