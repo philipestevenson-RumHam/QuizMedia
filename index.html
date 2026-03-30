@@ -615,8 +615,9 @@
         width: 100%;
       }
       .image-section img, .image-section video {
-        max-height: 200px;
-        object-fit: cover;
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        object-fit: contain;
         border-radius: var(--radius);
       }
       .options-container { gap: 8px; }
@@ -1496,9 +1497,7 @@
 
       setQuizHTML(html);
       startQuestionTimer(q);
-      if (!isMultiple && !isMultiSel && !isSortIt && !isKP) {
-        setTimeout(() => { const inp = document.getElementById('answerInput'); if (inp) inp.focus(); }, 80);
-      }
+      // No autofocus — prevents page jumping before user can read the question
     }
 
     /* ============================================================
@@ -2316,8 +2315,9 @@
       try {
         await fetch(CONFIG.GAS_URL, {
           method: 'POST',
+          mode: 'no-cors',  // GAS redirects break CORS — no-cors sends the data silently
           headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({ action: 'submit', username: user, answers, sessionId: sid })
+          body: JSON.stringify({ action: 'submitAnswers', username: user, answers, sessionId: sid })
         });
       } catch (e) {
         console.warn('Could not save results to GAS:', e);
