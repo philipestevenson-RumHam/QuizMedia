@@ -1,0 +1,2465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>RumHam Quiz</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    /* ==============================
+       CSS CUSTOM PROPERTIES (THEME)
+       ============================== */
+    :root {
+      --bg:            #0d1117;
+      --card:          #161b22;
+      --card2:         #21262d;
+      --card3:         #2d333b;
+      --border:        #30363d;
+      --border2:       #444c56;
+      --text:          #e6edf3;
+      --text-muted:    #8b949e;
+      --text-dim:      #6e7681;
+      --accent:        #1f6feb;
+      --accent-bright: #58a6ff;
+      --accent-hover:  #388bfd;
+      --correct:       #3fb950;
+      --correct-bg:    #1a3a1f;
+      --correct-text:  #7ee787;
+      --incorrect:     #f85149;
+      --incorrect-bg:  #3d1a1a;
+      --incorrect-text:#ffa198;
+      --partial:       #d29922;
+      --partial-bg:    #3a2d0a;
+      --partial-text:  #e3b341;
+      --neutral:       #8b949e;
+      --neutral-bg:    #21262d;
+      --pass:          #6e40c9;
+      --score-card:    #1c2128;
+      --timer-ok:      #1f6feb;
+      --timer-warn:    #d29922;
+      --timer-crit:    #f85149;
+      --gold:          #d4af37;
+      --silver:        #9ea3a9;
+      --bronze:        #cd7f32;
+      --radius:        12px;
+      --radius-lg:     20px;
+      --radius-pill:   999px;
+      --shadow:        0 4px 24px rgba(0,0,0,0.5);
+      --shadow-lg:     0 8px 48px rgba(0,0,0,0.7);
+      --glow-blue:     0 0 20px rgba(31,111,235,0.35);
+      --glow-green:    0 0 20px rgba(63,185,80,0.35);
+      --glow-red:      0 0 20px rgba(248,81,73,0.35);
+      --glow-amber:    0 0 20px rgba(210,153,34,0.35);
+    }
+
+    /* ==============================
+       RESETS & BASE
+       ============================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      caret-color: transparent;
+    }
+    input, textarea { caret-color: auto; }
+    img, video { max-width: 100%; height: auto; display: block; border-radius: 0; }
+    button { font-family: inherit; cursor: pointer; border: none; outline: none; }
+
+    /* ==============================
+       LAYOUT SHELL
+       ============================== */
+    #app {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #quiz {
+      width: 100%;
+      max-width: 1200px;
+      padding: 0 16px 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    @media (min-width: 768px) {
+      #quiz { padding: 0 32px 80px; }
+    }
+
+    /* ==============================
+       COVER SCREEN
+       ============================== */
+    #cover {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #cover .header-img {
+      width: 100%;
+      max-width: 900px;
+      margin: 0 auto;
+      display: block;
+      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    }
+    .cover-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px 24px;
+      width: 100%;
+      max-width: 780px;
+      margin: 24px auto 0;
+      box-shadow: var(--shadow);
+    }
+    .cover-card h1 {
+      font-size: clamp(1.8rem, 5vw, 2.8rem);
+      font-weight: 900;
+      text-align: center;
+      background: linear-gradient(135deg, var(--accent-bright), #a371f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+    .cover-subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 1rem;
+      margin-bottom: 28px;
+    }
+    .name-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 480px) {
+      .name-row { flex-direction: column; }
+    }
+    .name-input {
+      flex: 1;
+      background: var(--card2);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 1.1rem;
+      font-weight: 600;
+      padding: 14px 18px;
+      text-align: center;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .name-input::placeholder { color: var(--text-dim); font-weight: 400; }
+    .name-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(31,111,235,0.25);
+      outline: none;
+    }
+    .start-btn {
+      background: linear-gradient(135deg, #238636, #2ea043);
+      color: #fff;
+      font-size: 1.1rem;
+      font-weight: 700;
+      padding: 14px 28px;
+      border-radius: var(--radius);
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .start-btn:hover { background: linear-gradient(135deg, #2ea043, #3fb950); transform: translateY(-1px); box-shadow: var(--glow-green); }
+    .start-btn:active { transform: translateY(0); }
+
+    /* Pro Tips */
+    .pro-tips {
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin: 0 auto 20px;
+      width: 100%;
+      max-width: 780px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .pro-tips strong { color: var(--accent-bright); }
+    .pro-tips h4 { color: var(--text); font-size: 1rem; margin-bottom: 8px; }
+
+    /* Question Types / Scoring grid */
+    .info-section {
+      width: 100%;
+      max-width: 780px;
+      margin: 0 auto 20px;
+    }
+    .info-section h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+    .types-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px;
+    }
+    .type-card {
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+    }
+    .type-card h4 { font-size: 0.95rem; color: var(--accent-bright); margin-bottom: 4px; }
+    .type-card p { font-size: 0.82rem; color: var(--text-muted); line-height: 1.45; }
+
+    /* ==============================
+       SPINNER / LOADING
+       ============================== */
+    .spinner-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 20px;
+      gap: 20px;
+    }
+    .spinner {
+      width: 52px; height: 52px;
+      border: 4px solid var(--border);
+      border-top-color: var(--accent-bright);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner-text { color: var(--accent-bright); font-size: 1rem; font-weight: 600; }
+
+    /* ==============================
+       ERROR
+       ============================== */
+    .error-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 80px 20px;
+      text-align: center;
+    }
+    .error-icon { font-size: 3.5rem; }
+    .error-title { font-size: 1.3rem; font-weight: 700; color: var(--incorrect-text); }
+    .error-msg { font-size: 0.95rem; color: var(--text-muted); max-width: 480px; line-height: 1.6; }
+    .retry-btn {
+      background: var(--accent);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 13px 28px;
+      border-radius: var(--radius-pill);
+      transition: all 0.2s;
+    }
+    .retry-btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
+
+    /* ==============================
+       ROUND INTRO
+       ============================== */
+    .round-intro {
+      width: 100%;
+      max-width: 760px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .round-intro-img {
+      width: 100%;
+      max-height: 340px;
+      object-fit: cover;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+    .round-intro-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .round-intro-card.has-img { border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+    .round-intro-body { padding: 32px 28px; }
+    .round-badge {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 5px 14px;
+      border-radius: var(--radius-pill);
+      margin-bottom: 14px;
+    }
+    .round-intro-card h2 {
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 900;
+      color: var(--text);
+      margin-bottom: 20px;
+    }
+    .scoring-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--card2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 12px 20px;
+      margin-bottom: 20px;
+    }
+    .scoring-badge .icon { font-size: 1.5rem; }
+    .scoring-badge .label { font-size: 1.05rem; font-weight: 700; color: var(--accent-bright); }
+    .scoring-badge .desc { font-size: 0.82rem; color: var(--text-muted); margin-top: 2px; }
+    .round-desc-content {
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 22px;
+      text-align: left;
+      font-size: 1rem;
+      color: var(--text-muted);
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+    .round-start-btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #238636, #2ea043);
+      color: #fff;
+      font-size: 1.15rem;
+      font-weight: 700;
+      padding: 16px 40px;
+      border-radius: var(--radius-pill);
+      transition: all 0.2s;
+      box-shadow: var(--glow-green);
+    }
+    .round-start-btn:hover { background: linear-gradient(135deg, #2ea043, #3fb950); transform: translateY(-2px); }
+
+    /* ==============================
+       QUESTION SCREEN
+       ============================== */
+    .q-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 16px 0 10px;
+      gap: 12px;
+    }
+    .q-round-label {
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-pill);
+      padding: 7px 16px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .q-round-label span { color: var(--accent-bright); }
+
+    /* Fixed Timer */
+    #timerDisplay {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 1000;
+      background: var(--timer-ok);
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: var(--radius-pill);
+      font-size: 1.2rem;
+      font-weight: 800;
+      box-shadow: var(--shadow);
+      transition: background 0.3s;
+      min-width: 90px;
+      text-align: center;
+    }
+    #timerDisplay.warning { background: var(--timer-warn); animation: pulse-warn 1s ease infinite; }
+    #timerDisplay.critical { background: var(--timer-crit); animation: pulse-crit 0.5s ease infinite; }
+    @keyframes pulse-warn { 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
+    @keyframes pulse-crit { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+
+    /* Question text */
+    .question-wrap {
+      width: 100%;
+      max-width: 900px;
+      margin: 0 auto 4px;
+    }
+    .question-num {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      display: block;
+      margin-bottom: 6px;
+    }
+    .question-text {
+      font-size: clamp(1.1rem, 3vw, 1.6rem);
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.4;
+    }
+
+    /* Hint banners */
+    .hint-banner {
+      width: 100%;
+      max-width: 900px;
+      margin: 10px auto 0;
+      background: var(--partial-bg);
+      border: 1px solid var(--partial);
+      border-radius: var(--radius);
+      padding: 10px 16px;
+      color: var(--partial-text);
+      font-size: 0.9rem;
+      font-style: italic;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    /* Low brow hint */
+    .lowbrow-hint {
+      width: 100%;
+      max-width: 900px;
+      margin: 8px auto 0;
+      background: var(--card2);
+      border: 1px solid var(--border2);
+      border-left: 4px solid var(--partial);
+      border-radius: var(--radius);
+      padding: 10px 16px;
+      color: var(--partial-text);
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+
+    /* ==============================
+       DESKTOP LAYOUT (media + options side by side)
+       ============================== */
+    .desktop-layout {
+      display: flex;
+      flex-direction: row;
+      gap: 20px;
+      align-items: stretch;
+      width: 100%;
+      max-width: 1100px;
+      margin: 16px auto 0;
+      aspect-ratio: 2 / 1;
+    }
+    .image-section {
+      flex: 1 1 50%;
+      max-width: 50%;
+      display: flex;
+      flex-direction: column;
+    }
+    .image-section:empty,
+    .image-section:has(.media-placeholder) {
+      flex: 0 0 0;
+      max-width: 0;
+      overflow: hidden;
+      opacity: 0;
+    }
+    .options-section {
+      flex: 1 1 50%;
+      max-width: 50%;
+      display: flex;
+      flex-direction: column;
+    }
+    .desktop-layout:has(.image-section:empty) .options-section,
+    .desktop-layout:has(.media-placeholder) .options-section {
+      flex: 1 1 100%;
+      max-width: 100%;
+    }
+    .image-section img,
+    .image-section video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      margin: 0;
+      border-radius: var(--radius);
+    }
+    .media-placeholder { display: none; }
+
+    /* Options Container */
+    .options-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+      flex: 1;
+      min-height: 0;
+    }
+    .option {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+    }
+    .option button {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 50px 14px 16px;
+      font-size: clamp(0.85rem, 2vw + 0.2vh, 1.2rem);
+      font-weight: 600;
+      font-family: inherit;
+      background: var(--card2);
+      color: var(--text);
+      border: 2px solid var(--border2);
+      border-radius: var(--radius);
+      text-align: center;
+      line-height: 1.35;
+      white-space: normal;
+      word-wrap: break-word;
+      position: relative;
+      transition: all 0.15s;
+      min-height: 52px;
+      cursor: pointer;
+    }
+    .option button:hover:not(:disabled) {
+      background: var(--card3);
+      border-color: var(--accent);
+      box-shadow: var(--glow-blue);
+      transform: translateY(-1px);
+    }
+    .option button:active:not(:disabled) { transform: translateY(0); }
+    .option button:disabled { cursor: not-allowed; opacity: 0.85; }
+
+    /* Sort-It position number badge */
+    .sort-number {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--correct);
+      color: #fff;
+      border-radius: 50%;
+      width: 24px; height: 24px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Input wrapper */
+    .input-container-wrapper {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+    }
+    #answerInput {
+      background: var(--card2);
+      border: 2px solid var(--border2);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 1.2rem;
+      font-weight: 600;
+      font-family: inherit;
+      padding: 16px 20px;
+      text-align: center;
+      transition: all 0.2s;
+      width: 100%;
+    }
+    #answerInput::placeholder { color: var(--text-dim); font-weight: 400; }
+    #answerInput:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(31,111,235,0.25); outline: none; }
+    #answerInput.correct { border-color: var(--correct); background: var(--correct-bg); color: var(--correct-text); }
+    #answerInput.incorrect { border-color: var(--incorrect); background: var(--incorrect-bg); color: var(--incorrect-text); }
+    #answerInput.tier-1 { border-color: var(--correct); background: var(--correct-bg); color: var(--correct-text); }
+    #answerInput.tier-2 { border-color: #17a2b8; background: #0a2a2e; color: #6ec6d6; }
+    #answerInput.tier-3 { border-color: #6c63ff; background: #1a1740; color: #a09ffa; }
+    #answerInput.tier-4 { border-color: #9b59b6; background: #271535; color: #c792ea; }
+    #answerInput.tier-5 { border-color: #d29922; background: var(--partial-bg); color: var(--partial-text); }
+    #answerInput.tier-6 { border-color: #ffd700; background: #2e2700; color: #ffd700; }
+
+    /* Pointfull options list */
+    .pointfull-options-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      height: 100%;
+      justify-content: center;
+    }
+    .pointfull-option-item {
+      background: var(--card2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 12px 18px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    /* Mobile responsive: stack image above options */
+    @media (max-width: 640px) {
+      .desktop-layout {
+        flex-direction: column;
+        aspect-ratio: auto;
+        gap: 12px;
+      }
+      .image-section, .options-section {
+        flex: none;
+        max-width: 100%;
+        width: 100%;
+      }
+      .image-section img, .image-section video {
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        object-fit: contain;
+        border-radius: var(--radius);
+      }
+      .options-container { gap: 8px; }
+      .option { flex: none; min-height: 52px; }
+      .option button { height: auto; min-height: 52px; padding: 12px 44px 12px 14px; }
+    }
+
+    /* FirstLetterKP grid */
+    .first-letter-kp-wrapper {
+      width: 100%;
+      flex: 1;
+      display: flex;
+    }
+    .first-letter-kp-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      width: 100%;
+      height: 100%;
+    }
+    .first-letter-kp-btn {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(0.75rem, 2.5vw, 1.1rem);
+      font-weight: 800;
+      font-family: inherit;
+      border: none;
+      border-radius: 8px;
+      background: var(--card2);
+      color: var(--text);
+      cursor: pointer;
+      border: 1px solid var(--border2);
+      transition: all 0.15s;
+    }
+    .first-letter-kp-btn:hover:not(.kp-disabled):not(.kp-selected-orange):not(.kp-correct):not(.kp-incorrect) {
+      background: var(--accent);
+      border-color: var(--accent-bright);
+      box-shadow: var(--glow-blue);
+      transform: translateY(-1px);
+    }
+    .first-letter-kp-btn.kp-selected-orange { background: var(--partial) !important; border-color: #b5820e !important; color: #fff !important; cursor: not-allowed; }
+    .first-letter-kp-btn.kp-correct { background: var(--correct) !important; border-color: #2ea043 !important; color: #fff !important; cursor: not-allowed; }
+    .first-letter-kp-btn.kp-incorrect { background: var(--incorrect) !important; border-color: #da3633 !important; color: #fff !important; cursor: not-allowed; }
+    .first-letter-kp-btn.kp-correct-muted { background: #1a3a20 !important; border-color: var(--correct) !important; color: var(--correct-text) !important; cursor: not-allowed; }
+    .first-letter-kp-btn.kp-neutral { background: var(--card3) !important; border-color: var(--border2) !important; color: var(--text-dim) !important; cursor: not-allowed; }
+    .first-letter-kp-btn.kp-disabled { opacity: 0.35; cursor: not-allowed; }
+    @media (min-width: 1025px) {
+      .desktop-layout .first-letter-kp-btn { aspect-ratio: auto; width: 100%; height: 100%; }
+      .desktop-layout .first-letter-kp-grid { grid-template-rows: repeat(5, 1fr); }
+    }
+
+    /* ==============================
+       ACTION BUTTONS AREA
+       ============================== */
+    .action-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      width: 100%;
+      max-width: 900px;
+      margin: 16px auto 0;
+    }
+    .btn-submit {
+      background: linear-gradient(135deg, var(--accent), #1655b0);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 14px 28px;
+      border-radius: var(--radius-pill);
+      min-width: 140px;
+      transition: all 0.2s;
+      box-shadow: var(--glow-blue);
+    }
+    .btn-submit:hover:not(:disabled) { background: linear-gradient(135deg, var(--accent-hover), var(--accent)); transform: translateY(-1px); }
+    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+    .btn-pass {
+      background: linear-gradient(135deg, #6e0b0b, #a11d1d);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 14px 28px;
+      border-radius: var(--radius-pill);
+      min-width: 140px;
+      transition: all 0.2s;
+    }
+    .btn-pass:hover:not(:disabled) { background: linear-gradient(135deg, #a11d1d, #c0392b); transform: translateY(-1px); }
+    .btn-next {
+      background: linear-gradient(135deg, #238636, #2ea043);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 14px 28px;
+      border-radius: var(--radius-pill);
+      min-width: 160px;
+      transition: all 0.2s;
+      box-shadow: var(--glow-green);
+    }
+    .btn-next:hover { background: linear-gradient(135deg, #2ea043, #3fb950); transform: translateY(-2px); }
+    .sort-progress, .selected-count {
+      text-align: center;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--accent-bright);
+      width: 100%;
+      max-width: 900px;
+      margin: 10px auto 0;
+    }
+
+    /* ==============================
+       ANSWER FEEDBACK
+       ============================== */
+    .score-display {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      max-width: 900px;
+      margin: 16px auto 0;
+    }
+    .q-score-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--card2);
+      border: 2px solid var(--border2);
+      border-radius: var(--radius-pill);
+      padding: 10px 20px;
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .q-score-pill.positive { border-color: var(--correct); color: var(--correct-text); }
+    .q-score-pill.negative { border-color: var(--incorrect); color: var(--incorrect-text); }
+    .q-score-pill.wipeout { border-color: var(--incorrect); color: var(--incorrect-text); }
+    .total-score-pill {
+      background: linear-gradient(135deg, var(--accent), #1655b0);
+      color: #fff;
+      border-radius: var(--radius-pill);
+      padding: 10px 22px;
+      font-size: 1rem;
+      font-weight: 800;
+    }
+    .correct-answer-box {
+      width: 100%;
+      max-width: 900px;
+      margin: 10px auto 0;
+      border-radius: var(--radius);
+      padding: 14px 20px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      line-height: 1.5;
+    }
+    .correct-answer-box.green { background: var(--correct-bg); border: 1px solid var(--correct); color: var(--correct-text); }
+    .correct-answer-box.red   { background: var(--incorrect-bg); border: 1px solid var(--incorrect); color: var(--incorrect-text); }
+    .correct-answer-box.amber { background: var(--partial-bg); border: 1px solid var(--partial); color: var(--partial-text); }
+    .explanation-box {
+      width: 100%;
+      max-width: 900px;
+      margin: 8px auto 0;
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 20px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .explanation-box strong { color: var(--accent-bright); font-size: 0.9rem; }
+    .partial-feedback {
+      width: 100%;
+      max-width: 900px;
+      margin: 10px auto 0;
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: 700;
+      padding: 12px 20px;
+      border-radius: var(--radius);
+      border: 2px solid;
+    }
+    .partial-feedback.p100 { background: var(--correct-bg); border-color: var(--correct); color: var(--correct-text); }
+    .partial-feedback.p75 { background: var(--correct-bg); border-color: var(--correct); color: var(--correct-text); }
+    .partial-feedback.p50 { background: var(--partial-bg); border-color: var(--partial); color: var(--partial-text); }
+    .partial-feedback.p25 { background: #2d1a06; border-color: #d05a1a; color: #e08040; }
+    .partial-feedback.p0  { background: var(--incorrect-bg); border-color: var(--incorrect); color: var(--incorrect-text); }
+
+    /* ==============================
+       RESULTS SCREEN
+       ============================== */
+    .results-wrap {
+      width: 100%;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .results-header {
+      text-align: center;
+      padding: 32px 20px 24px;
+    }
+    .results-header h2 {
+      font-size: clamp(1.8rem, 5vw, 2.8rem);
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--accent-bright), #a371f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+    .results-header p { color: var(--text-muted); font-size: 1.05rem; }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 640px) {
+      .stats-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 380px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    .stat-card {
+      background: linear-gradient(135deg, var(--card2), var(--card3));
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-lg);
+      padding: 18px 10px;
+      text-align: center;
+    }
+    .stat-value { display: block; font-size: 1.6rem; font-weight: 900; color: var(--accent-bright); margin-bottom: 4px; }
+    .stat-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); }
+    .insights-box {
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px 22px;
+      margin-bottom: 24px;
+    }
+    .insights-box h4 { font-size: 1rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; }
+    .insight-item {
+      background: var(--card3);
+      border-left: 4px solid var(--accent);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 10px 14px;
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .round-breakdown { margin-bottom: 24px; }
+    .round-breakdown h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+      margin-bottom: 16px;
+    }
+    .round-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .round-card-header {
+      background: var(--card2);
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .round-title { font-size: 1.05rem; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+    .round-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; }
+    .round-stat { background: var(--card3); border-radius: var(--radius); padding: 8px 6px; text-align: center; }
+    .round-stat-value { display: block; font-size: 1.05rem; font-weight: 800; color: var(--accent-bright); }
+    .round-stat-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); }
+    .q-detail-list { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+    .q-detail-item {
+      border-radius: var(--radius);
+      overflow: hidden;
+      border-left: 4px solid var(--border2);
+    }
+    .q-detail-item.correct { border-left-color: var(--correct); background: var(--correct-bg); }
+    .q-detail-item.incorrect { border-left-color: var(--incorrect); background: var(--incorrect-bg); }
+    .q-detail-item.partial { border-left-color: var(--partial); background: var(--partial-bg); }
+    .q-detail-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 10px 14px 6px;
+    }
+    .q-detail-num { font-size: 0.85rem; font-weight: 700; color: var(--text); }
+    .q-detail-pts { font-size: 0.9rem; font-weight: 800; color: var(--accent-bright); text-align: right; }
+    .q-detail-time { font-size: 0.72rem; color: var(--text-dim); }
+    .q-detail-text { padding: 0 14px 8px; font-size: 0.88rem; color: var(--text-muted); font-weight: 500; line-height: 1.4; }
+    .q-detail-answers { padding: 0 14px 8px; display: flex; flex-direction: column; gap: 4px; }
+    .q-detail-answer { display: flex; gap: 8px; font-size: 0.82rem; }
+    .q-detail-answer .lbl { font-weight: 700; color: var(--text-dim); min-width: 80px; flex-shrink: 0; }
+    .q-detail-answer .val { color: var(--text-muted); }
+    .q-detail-expl { padding: 0 14px 10px; }
+    .q-detail-expl-inner { background: rgba(255,255,255,0.05); border-radius: 6px; padding: 8px 12px; font-size: 0.8rem; color: var(--text-dim); font-style: italic; line-height: 1.4; }
+    .results-actions { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; padding: 16px 0 40px; }
+    .btn-leaderboard {
+      background: linear-gradient(135deg, #6e40c9, #8957e5);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 14px 28px;
+      border-radius: var(--radius-pill);
+      transition: all 0.2s;
+    }
+    .btn-leaderboard:hover { background: linear-gradient(135deg, #8957e5, #a78bfa); transform: translateY(-1px); }
+    .btn-play-again {
+      background: linear-gradient(135deg, #238636, #2ea043);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 14px 28px;
+      border-radius: var(--radius-pill);
+      transition: all 0.2s;
+    }
+    .btn-play-again:hover { background: linear-gradient(135deg, #2ea043, #3fb950); transform: translateY(-1px); }
+
+    /* ==============================
+       LEADERBOARD OVERLAY
+       ============================== */
+    #leaderboardOverlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 2000;
+      overflow-y: auto;
+      padding: 20px;
+    }
+    #leaderboardOverlay.show { display: flex; align-items: flex-start; justify-content: center; padding-top: 40px; }
+    .lb-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px 24px;
+      max-width: 700px;
+      width: 100%;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+    }
+    .lb-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: var(--card3);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 34px; height: 34px;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .lb-close:hover { background: var(--incorrect-bg); color: var(--incorrect-text); border-color: var(--incorrect); }
+    .lb-header { text-align: center; margin-bottom: 24px; }
+    .lb-header h2 { font-size: 1.8rem; font-weight: 900; color: var(--text); }
+    .lb-header p { color: var(--text-muted); font-size: 0.9rem; margin-top: 4px; }
+    .lb-entry {
+      display: flex;
+      align-items: center;
+      padding: 14px 16px;
+      border-radius: var(--radius);
+      margin-bottom: 8px;
+      background: var(--card2);
+      border: 1px solid var(--border);
+      transition: all 0.15s;
+    }
+    .lb-entry:hover { border-color: var(--border2); transform: translateX(2px); }
+    .lb-entry.rank-1 { background: #2a230a; border-color: var(--gold); }
+    .lb-entry.rank-2 { background: #1c1e1f; border-color: var(--silver); }
+    .lb-entry.rank-3 { background: #241410; border-color: var(--bronze); }
+    .lb-trophy { font-size: 1.8rem; width: 40px; text-align: center; flex-shrink: 0; }
+    .lb-rank { font-size: 1.2rem; font-weight: 800; width: 40px; text-align: center; flex-shrink: 0; color: var(--text-muted); }
+    .lb-name { flex: 1; font-size: 1.1rem; font-weight: 700; color: var(--text); margin-left: 10px; }
+    .lb-meta { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+    .lb-score { font-size: 1.5rem; font-weight: 900; color: var(--accent-bright); margin-left: auto; flex-shrink: 0; }
+    .lb-actions { display: flex; justify-content: center; margin-top: 20px; }
+    .lb-screenshot-btn {
+      background: linear-gradient(135deg, var(--accent), #1655b0);
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: 700;
+      padding: 11px 22px;
+      border-radius: var(--radius-pill);
+      transition: all 0.2s;
+    }
+    .lb-screenshot-btn:hover { background: linear-gradient(135deg, var(--accent-hover), var(--accent)); transform: translateY(-1px); }
+
+    /* ==============================
+       TOAST NOTIFICATIONS
+       ============================== */
+    #toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 3000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    .toast {
+      background: var(--card2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 12px 20px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text);
+      box-shadow: var(--shadow);
+      animation: toastIn 0.3s ease;
+      max-width: 300px;
+    }
+    .toast.success { border-color: var(--correct); color: var(--correct-text); background: var(--correct-bg); }
+    .toast.error { border-color: var(--incorrect); color: var(--incorrect-text); background: var(--incorrect-bg); }
+    .toast.info { border-color: var(--accent); color: var(--accent-bright); }
+    @keyframes toastIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes toastOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+
+    /* ==============================
+       MISC UTILITIES
+       ============================== */
+    .spacer { display: block; height: 16px; }
+    .text-center { text-align: center; }
+    .mt8 { margin-top: 8px; }
+    .w100 { width: 100%; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="quiz">
+      <div id="cover">
+        <img
+          src="https://philipestevenson-rumham.github.io/QuizMedia/HeaderMain.png"
+          alt="RumHam Quiz"
+          class="header-img"
+          onerror="this.style.display='none'"
+        >
+        <div class="cover-card">
+          <h1>RumHam Quiz</h1>
+          <p class="cover-subtitle">Test your knowledge across a variety of rounds</p>
+          <div class="name-row">
+            <input
+              type="text"
+              id="username"
+              class="name-input"
+              placeholder="Enter your name…"
+              onkeypress="if(event.key==='Enter') startQuiz()"
+              autocomplete="off"
+            >
+            <button class="start-btn" onclick="startQuiz()">▶ Start Quiz</button>
+          </div>
+        </div>
+
+        <div class="pro-tips">
+          <h4>💡 Pro Tips</h4>
+          <p>
+            <strong>Pass Button:</strong> Skip without penalty (always 0 points).<br>
+            <strong>Time Expired:</strong> Treated the same as Pass — 0 points, no Wipeout trigger.<br>
+            <strong>Ladder:</strong> Have a guess! One wrong resets, but passes/timeouts also reset.
+          </p>
+        </div>
+
+        <div class="info-section">
+          <h3>🎯 Question Types</h3>
+          <div class="types-grid">
+            <div class="type-card"><h4>⌨️ Keypad</h4><p>Click the first letter from the grid.</p></div>
+            <div class="type-card"><h4>🍂 Keypad Scrambled</h4><p>First letter grid — in random order!</p></div>
+            <div class="type-card"><h4>📸 Multiple Choice</h4><p>Pick one answer. Red = wrong, green = right.</p></div>
+            <div class="type-card"><h4>✅ Select Multiple</h4><p>Select <strong>ALL</strong> correct answers.</p></div>
+            <div class="type-card"><h4>🔢 Sort It Out</h4><p>Click options in the correct order.</p></div>
+            <div class="type-card"><h4>🔢 Sort It (Partial)</h4><p>Partial points for each correct position.</p></div>
+            <div class="type-card"><h4>⬆️⬇️ High Brow / Low Brow</h4><p>Harder question with an easier hint halfway.</p></div>
+            <div class="type-card"><h4>⚠️ Impossible</h4><p>Three choices: full points, zero, or negative!</p></div>
+            <div class="type-card"><h4>🔢 Number</h4><p>Type the exact number.</p></div>
+            <div class="type-card"><h4>✏️ Text</h4><p>Type the full answer. Spelling counts!</p></div>
+            <div class="type-card"><h4>🔤 First Letter Text</h4><p>Type just the first letter.</p></div>
+            <div class="type-card"><h4>🎯 Pointfull</h4><p>Better answers score bonus multipliers!</p></div>
+          </div>
+        </div>
+
+        <div class="info-section">
+          <h3>⏱️ Scoring Methods</h3>
+          <div class="types-grid">
+            <div class="type-card"><h4>⏱️ Timer</h4><p>Faster = more points. Score drops as time runs out.</p></div>
+            <div class="type-card"><h4>⏱️💀 Timer (Evil)</h4><p>Timer scoring but wrong answers give negative points!</p></div>
+            <div class="type-card"><h4>📈 Ladder</h4><p>Points stack up. One wrong = reset to zero.</p></div>
+            <div class="type-card"><h4>💥 Wipeout</h4><p>One wrong answer = entire round goes to zero!</p></div>
+            <div class="type-card"><h4>🎯 Fixed</h4><p>Full points correct, zero wrong. Time irrelevant.</p></div>
+            <div class="type-card"><h4>🎯💀 Fixed (Evil)</h4><p>Full points correct, negative if wrong!</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaderboard overlay -->
+  <div id="leaderboardOverlay">
+    <div class="lb-card">
+      <button class="lb-close" onclick="closeLeaderboard()">✕</button>
+      <div id="leaderboardContent">
+        <div class="spinner-wrap"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notifications -->
+  <div id="toast-container"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script>
+    /* ============================================================
+       CONFIG — Paste your Google Apps Script URL below
+       ============================================================ */
+    const CONFIG = {
+      GAS_URL: 'https://script.google.com/macros/s/AKfycbzeiKbZ2YE1iK7ySEp3fgm4KiF4I07AbnPe8Ctyyr_Jzf8i2xmhdnX6mZ9aligLvz2YgA/exec',   // ← Replace with your deployed GAS URL
+      QUESTIONS_FILE: './questions.json',  // ← Path to your questions file (used when hosted)
+      QUIZ_TITLE: 'RumHam Quiz',
+      LEADERBOARD_LIMIT: 20
+    };
+
+    /* ============================================================
+       EMBEDDED QUESTIONS
+       These are used when running locally (opening index.html
+       directly from your computer without a web server).
+       When hosted on GitHub Pages, questions.json is used instead
+       — but you can also keep your questions here and skip the
+       separate JSON file entirely.
+
+       TO UPDATE: paste your exported questions JSON here,
+       replacing the array below.
+       ============================================================ */
+    window.QUIZ_QUESTIONS = [
+    // Questions loaded from questions.json when hosted, or embed them here for local testing
+    ];
+
+    /* ============================================================
+       SOUND EFFECTS
+       ============================================================ */
+    const sounds = {
+      correct:   'https://philipestevenson-rumham.github.io/QuizMedia/Correct.mp3',
+      incorrect: 'https://philipestevenson-rumham.github.io/QuizMedia/Incorrect.mp3',
+      partial:   'https://philipestevenson-rumham.github.io/QuizMedia/Partial.mp3',
+      timeout:   'https://philipestevenson-rumham.github.io/QuizMedia/Timeout.mp3',
+      pass:      'https://philipestevenson-rumham.github.io/QuizMedia/Pass.mp3'
+    };
+    function playSound(type) {
+      const url = sounds[type];
+      if (!url) return;
+      const audio = new Audio(url);
+      audio.volume = 0.5;
+      audio.play().catch(() => {});
+    }
+
+    /* ============================================================
+       TOAST NOTIFICATIONS
+       ============================================================ */
+    function showToast(message, type = 'info', duration = 3500) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.animation = 'toastOut 0.3s ease forwards';
+        setTimeout(() => toast.remove(), 300);
+      }, duration);
+    }
+
+    /* ============================================================
+       GAME STATE
+       ============================================================ */
+    let username = '';
+    let allQuestions = [];
+    let currentQuestionIndex = 0;
+    let userAnswers = [];
+    let totalScore = 0;
+    let sessionId = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    let answerSubmitted = false;
+    let currentRound = 0;
+    let roundsShown = new Set();
+    let countdownInterval = null;
+    let timeRemaining = 0;
+    let sortItSequence = [];
+    let sortItCounter = 0;
+    let selectedMultipleOptions = [];
+    let ladderPoints = {};
+    let wipeoutTriggered = {};
+
+    /* ============================================================
+       UTILITY
+       ============================================================ */
+    function shuffleArray(array) {
+      const s = [...array];
+      for (let i = s.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [s[i], s[j]] = [s[j], s[i]];
+      }
+      return s;
+    }
+
+    function setQuizHTML(html) {
+      document.getElementById('quiz').innerHTML = html;
+    }
+
+    function showLoading(msg = 'Loading…') {
+      setQuizHTML(`<div class="spinner-wrap"><div class="spinner"></div><div class="spinner-text">${msg}</div></div>`);
+    }
+
+    function showError(message, details = '', retryFn = null) {
+      const retryBtn = retryFn
+        ? `<button class="retry-btn" onclick="window._retryFn && window._retryFn()">🔄 Try Again</button>`
+        : `<button class="retry-btn" onclick="location.reload()">🔄 Reload</button>`;
+      if (retryFn) window._retryFn = retryFn;
+      setQuizHTML(`
+        <div class="error-wrap">
+          <div class="error-icon">⚠️</div>
+          <div class="error-title">${message}</div>
+          ${details ? `<div class="error-msg">${details}</div>` : ''}
+          ${retryBtn}
+        </div>
+      `);
+    }
+
+    /* ============================================================
+       START QUIZ — Load questions from questions.json
+       ============================================================ */
+    function startQuiz() {
+      const name = document.getElementById('username').value.trim();
+      if (!name) {
+        showToast('Please enter your name!', 'error');
+        document.getElementById('username').focus();
+        return;
+      }
+      username = name;
+      showLoading('Loading quiz questions…');
+
+      const loadTimeout = setTimeout(() => {
+        showError('Loading is taking too long', 'Check your internet connection or try refreshing.', startQuiz);
+      }, 15000);
+
+      // Use embedded questions if available (works locally without a server),
+      // otherwise fetch from questions.json (works when hosted on GitHub Pages etc.)
+      if (window.QUIZ_QUESTIONS && Array.isArray(window.QUIZ_QUESTIONS) && window.QUIZ_QUESTIONS.length > 0) {
+        clearTimeout(loadTimeout);
+        loadAllQuestions(window.QUIZ_QUESTIONS);
+      } else {
+        fetch(CONFIG.QUESTIONS_FILE)
+          .then(res => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
+          })
+          .then(questions => {
+            clearTimeout(loadTimeout);
+            if (!Array.isArray(questions) || questions.length === 0) {
+              throw new Error('No questions found in questions.json');
+            }
+            loadAllQuestions(questions);
+          })
+          .catch(err => {
+            clearTimeout(loadTimeout);
+            showError(
+              'Could not load quiz questions',
+              `Make sure questions.json is in the same folder as index.html.<br><small>${err.message}</small>`,
+              startQuiz
+            );
+          });
+      }
+    }
+
+    function loadAllQuestions(questions) {
+      allQuestions = questions;
+      currentQuestionIndex = 0;
+      userAnswers = [];
+      totalScore = 0;
+      currentRound = 0;
+      roundsShown.clear();
+      ladderPoints = {};
+      wipeoutTriggered = {};
+      showCurrentQuestion();
+    }
+
+    /* ============================================================
+       SHOW CURRENT QUESTION
+       ============================================================ */
+    function showCurrentQuestion() {
+      const question = allQuestions[currentQuestionIndex];
+      if (question.roundNumber !== currentRound && !roundsShown.has(question.roundNumber)) {
+        currentRound = question.roundNumber;
+        roundsShown.add(question.roundNumber);
+        showRoundDescription(question.roundNumber);
+      } else {
+        showActualQuestion();
+      }
+    }
+
+    /* ============================================================
+       ROUND DESCRIPTION SCREEN
+       ============================================================ */
+    function showRoundDescription(roundNumber) {
+      const firstQ = allQuestions.find(q => q.roundNumber === roundNumber);
+      if (!firstQ || !firstQ.roundDescription?.toString().trim()) {
+        showActualQuestion();
+        return;
+      }
+      const scoringType = (firstQ.scoring || 'Timer').trim();
+      const scoringMap = {
+        Timer:     { emoji: '⏱️',    label: 'Timer Based',         desc: 'Faster = more points! Score decreases as time runs out.' },
+        TimerEvil: { emoji: '⏱️💀', label: 'Timer (Evil)',         desc: 'Timer scoring with NEGATIVE points for wrong answers!' },
+        Ladder:    { emoji: '📈',    label: 'Ladder!',              desc: 'Points accumulate! One wrong answer resets to zero.' },
+        Wipeout:   { emoji: '💥',    label: 'Wipeout',              desc: 'One wrong answer = entire round becomes 0!' },
+        Fixed:     { emoji: '🎯',    label: 'Fixed Points',         desc: "Full points if correct. Time doesn't matter." },
+        FixedEvil: { emoji: '🎯💀', label: 'Fixed Points (Evil)',   desc: 'Fixed points with NEGATIVE penalty for wrong answers!' }
+      };
+      const sm = scoringMap[scoringType] || scoringMap.Timer;
+      const hasImg = firstQ.roundImage?.trim();
+
+      let html = `<div class="round-intro" style="width:100%;max-width:760px;margin:20px auto;">`;
+      if (hasImg) html += `<img src="${firstQ.roundImage}" alt="Round Image" class="round-intro-img" onerror="this.style.display='none'">`;
+      html += `<div class="round-intro-card${hasImg ? ' has-img' : ''}">
+        <div class="round-intro-body">
+          <span class="round-badge">Round ${roundNumber}</span>
+          <h2>${firstQ.roundCategory || 'Quiz Round'}</h2>
+          <div class="scoring-badge">
+            <span class="icon">${sm.emoji}</span>
+            <div>
+              <div class="label">${sm.label}</div>
+              <div class="desc">${sm.desc}</div>
+            </div>
+          </div>
+          <div class="round-desc-content">${firstQ.roundDescription}</div>
+          <button class="round-start-btn" onclick="showActualQuestion()">▶ Start Round ${roundNumber}</button>
+        </div>
+      </div></div>`;
+      setQuizHTML(html);
+    }
+
+    /* ============================================================
+       SHOW ACTUAL QUESTION
+       ============================================================ */
+    function showActualQuestion() {
+      if (!allQuestions || currentQuestionIndex >= allQuestions.length) {
+        showError('Error loading question', 'Please refresh the page.');
+        return;
+      }
+      const q = allQuestions[currentQuestionIndex];
+      q.startTime = Date.now();
+
+      const isMultiple    = q.questionType === 'Multiple' || q.questionType === 'Impossible';
+      const isMultiSel    = q.questionType === 'MultipleSelect' || q.questionType === 'Multiple Select';
+      const isSortIt      = q.questionType === 'SortIt' || q.questionType === 'SortItPartial';
+      const isKP          = q.questionType === 'FirstLetterKP' || q.questionType === 'FirstLetterKPShuffle';
+      const isPointfull   = q.questionType === 'Pointfull';
+      const hasVisualMedia = q.media && !q.media.endsWith('.mp3');
+
+      let html = `
+        <div class="q-header" style="width:100%;max-width:1100px;">
+          <div class="q-round-label">Round <span>${q.roundNumber}</span>: ${q.roundCategory || ''}</div>
+        </div>
+        <div class="question-wrap">
+          <span class="question-num">Q${q.questionNumber}</span>
+          <div class="question-text">${q.question || 'Question not available'}</div>
+        </div>
+      `;
+
+      // Hints
+      if (isMultiSel)
+        html += `<div class="hint-banner">Select <strong>ALL</strong> correct answers, then click Submit</div>`;
+      else if (q.questionType === 'SortIt')
+        html += `<div class="hint-banner">Click the options <strong>in the correct order</strong>. Click again to remove.</div>`;
+      else if (q.questionType === 'SortItPartial')
+        html += `<div class="hint-banner">Click options in order. <strong>Partial points</strong> for each correct position!</div>`;
+      else if (q.questionType === 'FirstLetter')
+        html += `<div class="hint-banner">Enter just the <strong>first letter</strong> of the main word (skip "The" / "A")</div>`;
+
+      // Desktop layout
+      html += `<div class="desktop-layout">`;
+
+      // LEFT: media / pointfull options
+      html += `<div class="image-section">`;
+      if (isPointfull) {
+        const opts = (Array.isArray(q.options) && q.options.length > 0)
+          ? q.options.filter(o => o != null && o.toString().trim() !== '')
+          : [q.option1, q.option2, q.option3, q.option4, q.option5, q.option6]
+              .filter(o => o != null && o.toString().trim() !== '');
+        html += `<div class="pointfull-options-list">`;
+        opts.forEach(o => html += `<div class="pointfull-option-item">${o}</div>`);
+        html += `</div>`;
+      } else if (q.media && q.media.endsWith('.mp3')) {
+        html += `<audio autoplay src="${q.media}"></audio><div class="media-placeholder"></div>`;
+      } else if (hasVisualMedia) {
+        if (q.media.endsWith('.mp4'))
+          html += `<video autoplay src="${q.media}" style="border-radius:var(--radius);"></video>`;
+        else
+          html += `<img src="${q.media}" alt="Question Media" style="border-radius:var(--radius);">`;
+      } else {
+        html += `<div class="media-placeholder"></div>`;
+      }
+      html += `</div>`;
+
+      // RIGHT: options / input / KP
+      html += `<div class="options-section">`;
+
+      if (isKP) {
+        let letters = 'ABCDEFGHIJKLMNOPQRSTUVWX'.split('');
+        letters.push('Y/Z');
+        if (q.questionType === 'FirstLetterKPShuffle') letters = shuffleArray(letters);
+        html += `<div class="first-letter-kp-wrapper"><div class="first-letter-kp-grid">`;
+        letters.forEach(l => html += `<button class="first-letter-kp-btn" onclick="submitFirstLetterKP('${l}')">${l}</button>`);
+        html += `</div></div>`;
+      } else if (isMultiple || isMultiSel || isSortIt) {
+        // Support both individual option fields (option1…option6) and the options array
+        const opts = (Array.isArray(q.options) && q.options.length > 0)
+          ? q.options
+          : [q.option1, q.option2, q.option3, q.option4, q.option5, q.option6];
+        html += `<div class="options-container">`;
+        opts.forEach(opt => {
+          if (opt != null && opt.toString().trim()) {
+            const safe = opt.toString().replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            if (isMultiple) {
+              html += `<div class="option"><button onclick="submit('${safe}')">${opt}</button></div>`;
+            } else if (isMultiSel) {
+              html += `<div class="option"><button onclick="toggleMultipleSelectOption(this,'${safe}')">${opt}</button></div>`;
+            } else if (isSortIt) {
+              html += `<div class="option"><button onclick="toggleSortItOption(this,'${safe}')">${opt}</button></div>`;
+            }
+          }
+        });
+        html += `</div>`;
+      } else {
+        let inputType = 'text', placeholder = 'Type your answer…';
+        if (q.questionType === 'Number') { inputType = 'number'; placeholder = 'Enter a number…'; }
+        else if (q.questionType === 'FirstLetter') placeholder = 'Enter the first letter…';
+        else if (q.questionType === 'Pointfull') placeholder = 'Type your answer from the options…';
+        html += `<div class="input-container-wrapper">
+          <input type="${inputType}" id="answerInput" class="${''}" placeholder="${placeholder}"
+            onkeypress="handleEnterKey(event)"
+            ${q.questionType === 'FirstLetter' ? 'maxlength="1"' : ''}
+            autocomplete="off">
+        </div>`;
+      }
+
+      html += `</div></div>`; // close options-section, desktop-layout
+
+      // Action buttons
+      if (isMultiple) {
+        html += `<div class="action-buttons"><button class="btn-pass" onclick="passQuestion()">⏭ Pass</button></div>`;
+      } else if (isMultiSel) {
+        html += `<div class="selected-count" id="selectedCount">0 answers selected</div>
+          <div class="action-buttons">
+            <button id="multipleSelectSubmit" class="btn-submit" onclick="submitMultipleSelectAnswers()" disabled>✓ Submit</button>
+            <button class="btn-pass" onclick="passQuestion()">⏭ Pass</button>
+          </div>`;
+      } else if (isSortIt) {
+        html += `<div class="sort-progress" id="sortProgress">0 items ordered</div>
+          <div class="action-buttons">
+            <button id="sortItSubmit" class="btn-submit" onclick="submitSortItAnswers()" disabled>✓ Submit Order</button>
+            <button class="btn-pass" onclick="passQuestion()">⏭ Pass</button>
+          </div>`;
+      } else if (!isKP) {
+        html += `<div class="action-buttons">
+          <button id="submitAnswerBtn" class="btn-submit" onclick="submitInputAnswer()">✓ Submit</button>
+          <button id="passAnswerBtn" class="btn-pass" onclick="passQuestion()">⏭ Pass</button>
+        </div>`;
+      } else {
+        html += `<div class="action-buttons"><button class="btn-pass" onclick="passQuestion()">⏭ Pass</button></div>`;
+      }
+
+      setQuizHTML(html);
+      startQuestionTimer(q);
+      // No autofocus — prevents page jumping before user can read the question
+    }
+
+    /* ============================================================
+       ANSWER CHECKING
+       ============================================================ */
+    function checkAnswer(userAnswer, question) {
+      const ua = userAnswer.toString().trim();
+      const ual = ua.toLowerCase();
+      const correctAnswers = [
+        question.correctAnswer, question.correctAnswer2, question.correctAnswer3,
+        question.correctAnswer4, question.correctAnswer5, question.correctAnswer6
+      ].filter(a => a != null && a.toString().trim() !== '')
+       .map(a => a.toString().trim().toLowerCase());
+
+      const qt = question.questionType;
+
+      if (qt === 'FirstLetterKP' || qt === 'FirstLetterKPShuffle') {
+        const ul = ual;
+        return correctAnswers.some(ca => {
+          const cf = ca.charAt(0);
+          return ul === 'y' ? (cf === 'y' || cf === 'z') : cf === ul;
+        });
+      }
+      if (qt === 'FirstLetter') {
+        const uf = ual.charAt(0);
+        return correctAnswers.some(ca => ca.charAt(0) === uf);
+      }
+      if (qt === 'MultipleSelect' || qt === 'Multiple Select') {
+        const sel = ua.split(' / ').map(o => o.trim().toLowerCase());
+        const sortedSel = [...sel].sort();
+        const sortedCor = [...correctAnswers].sort();
+        if (sortedSel.length === sortedCor.length && sortedSel.every((o, i) => o === sortedCor[i])) return 1;
+        const allOpts = (Array.isArray(question.options) && question.options.length > 0)
+          ? question.options.filter(o => o != null && o.toString().trim() !== '').map(o => o.toString().trim().toLowerCase())
+          : [question.option1, question.option2, question.option3, question.option4, question.option5, question.option6]
+              .filter(o => o != null && o.toString().trim() !== '').map(o => o.toString().trim().toLowerCase());
+        if (allOpts.length === 0) return 0;
+        const pct = 1 / allOpts.length;
+        let score = 0;
+        allOpts.forEach(o => {
+          const wasSelected = sel.includes(o);
+          const shouldBe = correctAnswers.includes(o);
+          if (wasSelected && shouldBe) score += pct;
+          else if (!wasSelected && !shouldBe) score += pct;
+        });
+        return Math.max(0, Math.min(1, score));
+      }
+      if (qt === 'SortIt') {
+        const us = ua.split(' / ').map(o => o.trim().toLowerCase());
+        if (us.length !== correctAnswers.length) return false;
+        return us.every((v, i) => v === correctAnswers[i]);
+      }
+      if (qt === 'SortItPartial') {
+        const us = ua.split(' / ').map(o => o.trim().toLowerCase());
+        if (us.length !== correctAnswers.length) return 0;
+        let correct = 0;
+        us.forEach((v, i) => { if (v === correctAnswers[i]) correct++; });
+        return correct / correctAnswers.length;
+      }
+      if (qt === 'Impossible') {
+        if (ual === correctAnswers[0]) return 1;
+        if (ual === correctAnswers[1]) return 0;
+        if (ual === correctAnswers[2]) return -1;
+        return 0;
+      }
+      if (qt === 'Number') {
+        const un = parseFloat(ual);
+        return correctAnswers.some(ca => { const cn = parseFloat(ca); return !isNaN(un) && !isNaN(cn) && un === cn; });
+      }
+      if (qt === 'Pointfull') {
+        if (correctAnswers[0] && ual === correctAnswers[0]) return 1.0;
+        if (correctAnswers[1] && ual === correctAnswers[1]) return 1.1;
+        if (correctAnswers[2] && ual === correctAnswers[2]) return 1.2;
+        if (correctAnswers[3] && ual === correctAnswers[3]) return 1.3;
+        if (correctAnswers[4] && ual === correctAnswers[4]) return 1.4;
+        if (correctAnswers[5] && ual === correctAnswers[5]) return 1.5;
+        return 0;
+      }
+      return correctAnswers.includes(ual);
+    }
+
+    function calculateScore(seconds, timeAllowed, points, scoringMethod, isCorrect) {
+      if (!points || points <= 0) return 0;
+      const maxTime = Number(timeAllowed) || 30;
+      const maxPts = Number(points);
+      const method = (scoringMethod || 'Timer').trim();
+      const currentQ = allQuestions[currentQuestionIndex];
+
+      switch (method) {
+        case 'Wipeout': {
+          const rn = currentQ.roundNumber;
+          if (wipeoutTriggered[rn]) return 0;
+          return isCorrect ? maxPts : 0;
+        }
+        case 'Ladder': {
+          const rn = currentQ.roundNumber;
+          if (!ladderPoints[rn]) ladderPoints[rn] = [];
+          if (!isCorrect) { ladderPoints[rn] = []; return 0; }
+          ladderPoints[rn].push(maxPts);
+          return ladderPoints[rn].reduce((s, p) => s + p, 0);
+        }
+        case 'TimerEvil':
+          if (!isCorrect) return -maxPts;
+          if (seconds >= maxTime) return 0;
+          return Math.max(0, Math.round(maxPts * Math.max(0, maxTime - seconds) / maxTime));
+        case 'Fixed':
+          return isCorrect ? maxPts : 0;
+        case 'FixedEvil':
+          return isCorrect ? maxPts : -maxPts;
+        case 'Timer':
+        default:
+          if (!isCorrect) return 0;
+          if (seconds >= maxTime) return 0;
+          return Math.max(0, Math.round(maxPts * Math.max(0, maxTime - seconds) / maxTime));
+      }
+    }
+
+    function getDisplayCorrectAnswer(question) {
+      const cas = [
+        question.correctAnswer, question.correctAnswer2, question.correctAnswer3,
+        question.correctAnswer4, question.correctAnswer5, question.correctAnswer6
+      ].filter(a => a != null && a.toString().trim() !== '');
+      if (cas.length === 0) return question.correctAnswer || '';
+      if (question.questionType === 'Pointfull') {
+        const bonuses = ['100%','110%','120%','130%','140%','150%'];
+        const emojis = ['✅','⚡','💫','✨','⭐','🌟'];
+        return cas.map((a, i) => `${emojis[i]} ${a} (${bonuses[i]})`).join(' / ');
+      }
+      return cas.map(a => a.toString()).join(' / ');
+    }
+
+    /* ============================================================
+       SUBMIT ANSWER
+       ============================================================ */
+    function submit(answer) {
+      stopTimer();
+      if (answerSubmitted) return;
+      answerSubmitted = true;
+
+      const q = allQuestions[currentQuestionIndex];
+      const endTime = Date.now();
+      const duration = (endTime - q.startTime) / 1000;
+      let scoreResult = checkAnswer(answer, q);
+      let isCorrect, questionScore;
+
+      if (q.questionType === 'Pointfull') {
+        isCorrect = scoreResult > 0;
+        questionScore = isCorrect ? Math.round(q.points * scoreResult) : 0;
+      } else if (q.questionType === 'Impossible') {
+        isCorrect = scoreResult === 1;
+        questionScore = scoreResult === 1 ? Number(q.points) : (scoreResult === 0 ? 0 : -Number(q.points));
+      } else if (q.questionType === 'MultipleSelect' || q.questionType === 'Multiple Select' || q.questionType === 'SortItPartial') {
+        isCorrect = scoreResult >= 0.999;
+        const base = calculateScore(duration, q.timeAllowed, q.points, q.scoring, true);
+        questionScore = Math.round(base * scoreResult);
+        const m = (q.scoring || 'Timer').trim();
+        if (!isCorrect && scoreResult < 0.5 && (m === 'TimerEvil' || m === 'FixedEvil')) {
+          questionScore = -Number(q.points);
+        }
+      } else {
+        isCorrect = scoreResult;
+        questionScore = calculateScore(duration, q.timeAllowed, q.points, q.scoring, isCorrect);
+      }
+
+      const m = (q.scoring || 'Timer').trim();
+      if (m === 'Ladder' && !isCorrect) {
+        ladderPoints[q.roundNumber] = [];
+      }
+
+      userAnswers.push({
+        questionIndex: currentQuestionIndex,
+        roundNumber: q.roundNumber,
+        questionNumber: q.questionNumber,
+        userAnswer: answer,
+        correctAnswer: q.correctAnswer,
+        isCorrect,
+        score: questionScore,
+        duration,
+        startTime: q.startTime,
+        endTime,
+        partialScore: (q.questionType === 'MultipleSelect' || q.questionType === 'Multiple Select' || q.questionType === 'SortItPartial') ? scoreResult : null,
+        questionType: q.questionType
+      });
+
+      showAnswerFeedback(answer, isCorrect, questionScore, q);
+    }
+
+    function submitInputAnswer() {
+      const inp = document.getElementById('answerInput');
+      const answer = inp ? inp.value.trim() : '';
+      if (!answer) { showToast('Please enter an answer!', 'error'); return; }
+      submit(answer);
+    }
+
+    function handleEnterKey(event) {
+      if (event.key === 'Enter') submitInputAnswer();
+    }
+
+    /* ============================================================
+       PASS / TIMEOUT
+       ============================================================ */
+    function disableAllInputs() {
+      document.querySelectorAll('.option button, .first-letter-kp-btn').forEach(b => b.disabled = true);
+      ['multipleSelectSubmit','sortItSubmit','submitAnswerBtn','passAnswerBtn'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = true;
+      });
+      const inp = document.getElementById('answerInput');
+      if (inp) inp.disabled = true;
+    }
+
+    function passQuestion() {
+      if (answerSubmitted) return;
+      disableAllInputs();
+      stopTimer();
+      answerSubmitted = true;
+      const q = allQuestions[currentQuestionIndex];
+      const endTime = Date.now();
+      const duration = (endTime - q.startTime) / 1000;
+      const m = (q.scoring || 'Timer').trim();
+      if (m === 'Ladder') ladderPoints[q.roundNumber] = [];
+      userAnswers.push({
+        questionIndex: currentQuestionIndex,
+        roundNumber: q.roundNumber,
+        questionNumber: q.questionNumber,
+        userAnswer: '--Player Passed--',
+        correctAnswer: q.correctAnswer,
+        isCorrect: false,
+        score: 0,
+        duration,
+        startTime: q.startTime,
+        endTime,
+        partialScore: null,
+        questionType: q.questionType
+      });
+      showAnswerFeedback('--Player Passed--', false, 0, q);
+    }
+
+    function handleTimeout() {
+      if (answerSubmitted) return;
+      disableAllInputs();
+      stopTimer();
+      answerSubmitted = true;
+      const q = allQuestions[currentQuestionIndex];
+      const endTime = Date.now();
+      const duration = (endTime - q.startTime) / 1000;
+      const m = (q.scoring || 'Timer').trim();
+      if (m === 'Ladder') ladderPoints[q.roundNumber] = [];
+      userAnswers.push({
+        questionIndex: currentQuestionIndex,
+        roundNumber: q.roundNumber,
+        questionNumber: q.questionNumber,
+        userAnswer: '--Time Expired--',
+        correctAnswer: q.correctAnswer,
+        isCorrect: false,
+        score: 0,
+        duration,
+        startTime: q.startTime,
+        endTime,
+        partialScore: null,
+        questionType: q.questionType
+      });
+      showAnswerFeedback('--Time Expired--', false, 0, q);
+    }
+
+    /* ============================================================
+       FIRST LETTER KEYPAD
+       ============================================================ */
+    function submitFirstLetterKP(letterChoice) {
+      if (answerSubmitted) return;
+      answerSubmitted = true;
+      const q = allQuestions[currentQuestionIndex];
+      const btns = document.querySelectorAll('.first-letter-kp-btn');
+
+      btns.forEach(btn => {
+        if (btn.textContent.trim() === letterChoice) btn.classList.add('kp-selected-orange');
+        else btn.classList.add('kp-disabled');
+        btn.style.pointerEvents = 'none';
+      });
+
+      const letterKey = letterChoice === 'Y/Z' ? 'y' : letterChoice.charAt(0).toLowerCase();
+      const cas = [q.correctAnswer, q.correctAnswer2, q.correctAnswer3, q.correctAnswer4, q.correctAnswer5, q.correctAnswer6]
+        .filter(a => a != null && a.toString().trim() !== '').map(a => a.toString().trim().toLowerCase());
+      const isCorrect = cas.some(ca => {
+        const cf = ca.charAt(0);
+        return letterKey === 'y' ? (cf === 'y' || cf === 'z') : cf === letterKey;
+      });
+
+      setTimeout(() => {
+        btns.forEach(btn => {
+          if (btn.textContent.trim() === letterChoice) {
+            btn.classList.remove('kp-selected-orange');
+            btn.classList.add(isCorrect ? 'kp-correct' : 'kp-incorrect');
+          }
+        });
+        setTimeout(() => {
+          const endTime = Date.now();
+          const duration = (endTime - q.startTime) / 1000;
+          const questionScore = calculateScore(duration, q.timeAllowed, q.points, q.scoring, isCorrect);
+          userAnswers.push({
+            questionIndex: currentQuestionIndex,
+            roundNumber: q.roundNumber,
+            questionNumber: q.questionNumber,
+            userAnswer: letterKey,
+            correctAnswer: q.correctAnswer,
+            isCorrect,
+            score: questionScore,
+            duration,
+            startTime: q.startTime,
+            endTime,
+            partialScore: null,
+            questionType: q.questionType
+          });
+          // Show correct/muted on other keys
+          btns.forEach(btn => {
+            const bk = btn.textContent.trim() === 'Y/Z' ? 'y' : btn.textContent.trim().toLowerCase();
+            if (bk === letterKey) return;
+            btn.classList.remove('kp-disabled');
+            const representsCorrect = cas.some(ca => {
+              const cf = ca.charAt(0);
+              return bk === 'y' ? (cf === 'y' || cf === 'z') : cf === bk;
+            });
+            btn.classList.add(representsCorrect ? 'kp-correct-muted' : 'kp-neutral');
+          });
+          showAnswerFeedback(letterKey, isCorrect, questionScore, q);
+        }, 400);
+      }, 800);
+    }
+
+    /* ============================================================
+       MULTIPLE SELECT
+       ============================================================ */
+    function toggleMultipleSelectOption(button, optionValue) {
+      if (answerSubmitted) return;
+      const idx = selectedMultipleOptions.indexOf(optionValue);
+      if (idx > -1) {
+        selectedMultipleOptions.splice(idx, 1);
+        button.style.backgroundColor = '';
+        button.style.borderColor = '';
+        button.style.color = '';
+      } else {
+        selectedMultipleOptions.push(optionValue);
+        button.style.backgroundColor = 'var(--partial)';
+        button.style.borderColor = '#b5820e';
+        button.style.color = '#fff';
+      }
+      updateSelectedCount();
+    }
+
+    function updateSelectedCount() {
+      const el = document.getElementById('selectedCount');
+      const btn = document.getElementById('multipleSelectSubmit');
+      const n = selectedMultipleOptions.length;
+      if (el) el.textContent = `${n} answer${n !== 1 ? 's' : ''} selected`;
+      if (btn) btn.disabled = n === 0;
+    }
+
+    function submitMultipleSelectAnswers() {
+      if (answerSubmitted || selectedMultipleOptions.length === 0) return;
+      submit(selectedMultipleOptions.join(' / '));
+      selectedMultipleOptions = [];
+    }
+
+    /* ============================================================
+       SORT IT
+       ============================================================ */
+    function toggleSortItOption(button, optionValue) {
+      if (answerSubmitted) return;
+      const existingIdx = sortItSequence.findIndex(item => item.option === optionValue);
+      if (existingIdx > -1) {
+        const removed = sortItSequence.splice(existingIdx, 1)[0];
+        button.innerHTML = optionValue;
+        button.style.backgroundColor = '';
+        button.style.borderColor = '';
+        button.style.color = '';
+        sortItSequence.forEach((item, i) => {
+          if (item.order > removed.order) {
+            item.order--;
+            document.querySelectorAll('.option button').forEach(b => {
+              if (b.textContent.includes(item.option)) {
+                b.innerHTML = `<span class="sort-number">${item.order}</span>${item.option}`;
+              }
+            });
+          }
+        });
+        sortItCounter--;
+      } else {
+        sortItCounter++;
+        sortItSequence.push({ option: optionValue, order: sortItCounter });
+        button.innerHTML = `<span class="sort-number">${sortItCounter}</span>${optionValue}`;
+        button.style.backgroundColor = 'var(--partial)';
+        button.style.borderColor = '#b5820e';
+        button.style.color = '#fff';
+      }
+      updateSortItProgress();
+    }
+
+    function updateSortItProgress() {
+      const el = document.getElementById('sortProgress');
+      const btn = document.getElementById('sortItSubmit');
+      const n = sortItSequence.length;
+      if (el) el.textContent = `${n} item${n !== 1 ? 's' : ''} ordered`;
+      if (btn) btn.disabled = n === 0;
+    }
+
+    function submitSortItAnswers() {
+      if (answerSubmitted || sortItSequence.length === 0) return;
+      const ordered = [...sortItSequence].sort((a, b) => a.order - b.order);
+      submit(ordered.map(item => item.option).join(' / '));
+      resetSortItState();
+    }
+
+    function resetSortItState() { sortItSequence = []; sortItCounter = 0; }
+    function resetMultipleSelectState() { selectedMultipleOptions = []; resetSortItState(); }
+
+    /* ============================================================
+       ANSWER FEEDBACK
+       ============================================================ */
+    function showAnswerFeedback(userAnswer, isCorrect, questionScore, questionData) {
+      const q = allQuestions[currentQuestionIndex];
+      if (!q) return;
+
+      // Sound
+      if (userAnswer === '--Time Expired--') playSound('timeout');
+      else if (userAnswer === '--Player Passed--') playSound('pass');
+      else if (q.questionType === 'MultipleSelect' || q.questionType === 'Multiple Select' || q.questionType === 'SortItPartial') {
+        const last = userAnswers[userAnswers.length - 1];
+        const sr = last ? (last.partialScore || 0) : 0;
+        playSound(sr >= 0.999 ? 'correct' : sr > 0 ? 'partial' : 'incorrect');
+      } else if (q.questionType === 'Impossible') {
+        playSound(isCorrect ? 'correct' : questionScore === 0 ? 'partial' : 'incorrect');
+      } else {
+        playSound(isCorrect ? 'correct' : 'incorrect');
+      }
+
+      // Wipeout handling
+      const scoring = (q.scoring || 'Timer').trim();
+      if (scoring === 'Wipeout' && !isCorrect && userAnswer !== '--Player Passed--' && userAnswer !== '--Time Expired--') {
+        const rn = q.roundNumber;
+        if (!wipeoutTriggered[rn]) {
+          const earned = userAnswers.filter(a => a.roundNumber === rn).reduce((s, a) => s + a.score, 0);
+          questionScore = -earned;
+          userAnswers.forEach(a => { if (a.roundNumber === rn) a.score = 0; });
+          wipeoutTriggered[rn] = true;
+        }
+      }
+
+      totalScore += questionScore;
+
+      // Clean up action buttons / inputs
+      ['.action-buttons','.input-section','#selectedCount','#sortProgress'].forEach(sel => {
+        const el = document.querySelector(sel);
+        if (el) el.remove();
+      });
+
+      const isLast = currentQuestionIndex >= allQuestions.length - 1;
+      applyButtonFeedback(userAnswer, isCorrect, questionScore, questionData, q);
+
+      // Partial feedback bar
+      if (q.questionType === 'MultipleSelect' || q.questionType === 'Multiple Select' || q.questionType === 'SortItPartial') {
+        const last = userAnswers[userAnswers.length - 1];
+        const sr = last ? (last.partialScore || 0) : 0;
+        const pct = Math.round(sr * 100);
+        let cls = 'p0', icon = '❌';
+        if (pct === 100) { cls = 'p100'; icon = '🎉'; }
+        else if (pct >= 75) { cls = 'p75'; icon = '✅'; }
+        else if (pct >= 50) { cls = 'p50'; icon = '⚠️'; }
+        else if (pct > 0) { cls = 'p25'; icon = '🟡'; }
+        const div = document.createElement('div');
+        div.className = `partial-feedback ${cls}`;
+        div.textContent = `${icon} You got ${pct}% of this question correct`;
+        document.getElementById('quiz').appendChild(div);
+      }
+
+      // Score display
+      const isWipeout = scoring === 'Wipeout' && questionScore < 0;
+      const scorePrefix = questionScore > 0 ? '+' : '';
+      const scoreClass = questionScore > 0 ? 'positive' : questionScore < 0 ? 'negative' : '';
+      const wipeoutBadge = isWipeout ? ' 💥 WIPEOUT!' : '';
+
+      const scoreDiv = document.createElement('div');
+      scoreDiv.className = 'score-display';
+      scoreDiv.innerHTML = `
+        <span class="q-score-pill ${scoreClass}${isWipeout ? ' wipeout' : ''}">
+          This Q: ${scorePrefix}${questionScore}${wipeoutBadge}
+        </span>
+        <span class="total-score-pill">Total: ${totalScore}</span>
+        <button class="btn-next" onclick="proceedToNext()">${isLast ? '🏁 Finish Quiz' : 'Next ▶'}</button>
+      `;
+      document.getElementById('quiz').appendChild(scoreDiv);
+
+      // Correct answer display
+      const qt = q.questionType;
+      let answerBox = document.createElement('div');
+      if (qt === 'Impossible') {
+        const cas = [questionData.correctAnswer, questionData.correctAnswer2, questionData.correctAnswer3].filter(a => a);
+        const color = isCorrect ? 'green' : questionScore === 0 ? 'amber' : 'red';
+        answerBox.className = `correct-answer-box ${color}`;
+        if (cas.length >= 3)
+          answerBox.innerHTML = `✅ Correct: <strong>${cas[0]}</strong> &nbsp;|&nbsp; 🚫 Zero points: <strong>${cas[1]}</strong> &nbsp;|&nbsp; 💥 Negative: <strong>${cas[2]}</strong>`;
+        else
+          answerBox.innerHTML = `<strong>Correct Answer:</strong> ${getDisplayCorrectAnswer(questionData)}`;
+      } else {
+        const color = isCorrect ? 'green' : 'red';
+        answerBox.className = `correct-answer-box ${color}`;
+        const label = (qt === 'SortIt' || qt === 'SortItPartial') ? 'Correct Order:' : (qt === 'MultipleSelect' || qt === 'Multiple Select') ? 'Correct Answers:' : 'Correct Answer:';
+        answerBox.innerHTML = `<strong>${label}</strong> ${getDisplayCorrectAnswer(questionData)}`;
+      }
+      document.getElementById('quiz').appendChild(answerBox);
+
+      // Explanation
+      if (questionData.explanation?.toString().trim()) {
+        const expl = document.createElement('div');
+        expl.className = 'explanation-box';
+        expl.innerHTML = `<strong>💡 Explanation:</strong> ${questionData.explanation}`;
+        document.getElementById('quiz').appendChild(expl);
+      }
+    }
+
+    function applyButtonFeedback(userAnswer, isCorrect, questionScore, questionData, q) {
+      const qt = q.questionType;
+
+      if (qt === 'Multiple') {
+        const btns = document.querySelectorAll('.option button');
+        const cas = [questionData.correctAnswer, questionData.correctAnswer2, questionData.correctAnswer3,
+          questionData.correctAnswer4, questionData.correctAnswer5, questionData.correctAnswer6]
+          .filter(a => a).map(a => a.toString().trim());
+        btns.forEach(btn => {
+          btn.disabled = true;
+          const text = btn.textContent.trim();
+          const isCor = cas.includes(text);
+          const wasSel = text === userAnswer.trim();
+          if (isCor && wasSel) { btn.style.backgroundColor = 'var(--correct)'; btn.style.borderColor = '#2ea043'; btn.style.color = '#fff'; }
+          else if (isCor && !wasSel) { btn.style.backgroundColor = '#1a3a20'; btn.style.borderColor = 'var(--correct)'; btn.style.color = 'var(--correct-text)'; }
+          else if (!isCor && wasSel) { btn.style.backgroundColor = 'var(--incorrect)'; btn.style.borderColor = '#da3633'; btn.style.color = '#fff'; }
+          else { btn.style.backgroundColor = 'var(--card3)'; btn.style.borderColor = 'var(--border)'; btn.style.color = 'var(--text-dim)'; }
+        });
+      } else if (qt === 'Impossible') {
+        const btns = document.querySelectorAll('.option button');
+        const corr = questionData.correctAnswer?.toString().trim();
+        const neut = questionData.correctAnswer2?.toString().trim();
+        const wrong = questionData.correctAnswer3?.toString().trim();
+        btns.forEach(btn => {
+          btn.disabled = true;
+          const text = btn.textContent.trim();
+          const wasSel = text === userAnswer.trim();
+          if (text === corr) {
+            btn.style.backgroundColor = wasSel ? 'var(--correct)' : 'var(--correct-bg)';
+            btn.style.borderColor = 'var(--correct)'; btn.style.color = 'var(--correct-text)';
+          } else if (text === neut) {
+            btn.style.backgroundColor = wasSel ? 'var(--partial)' : 'var(--partial-bg)';
+            btn.style.borderColor = 'var(--partial)'; btn.style.color = 'var(--partial-text)';
+          } else if (text === wrong) {
+            btn.style.backgroundColor = wasSel ? 'var(--incorrect)' : 'var(--incorrect-bg)';
+            btn.style.borderColor = 'var(--incorrect)'; btn.style.color = 'var(--incorrect-text)';
+          } else {
+            btn.style.backgroundColor = 'var(--card3)'; btn.style.borderColor = 'var(--border)'; btn.style.color = 'var(--text-dim)';
+          }
+        });
+      } else if (qt === 'MultipleSelect' || qt === 'Multiple Select') {
+        const btns = document.querySelectorAll('.option button');
+        const cas = [questionData.correctAnswer, questionData.correctAnswer2, questionData.correctAnswer3,
+          questionData.correctAnswer4, questionData.correctAnswer5, questionData.correctAnswer6]
+          .filter(a => a).map(a => a.toString().trim());
+        const sels = userAnswer.split(' / ').map(s => s.trim());
+        btns.forEach(btn => {
+          btn.disabled = true;
+          const text = btn.textContent.trim();
+          const isCor = cas.includes(text);
+          const wasSel = sels.includes(text);
+          const emoji = ((isCor && wasSel) || (!isCor && !wasSel)) ? '👍 ' : '👎 ';
+          btn.innerHTML = `${emoji}${text}`;
+          btn.style.backgroundColor = isCor ? 'var(--correct)' : 'var(--incorrect)';
+          btn.style.borderColor = isCor ? '#2ea043' : '#da3633';
+          btn.style.color = '#fff';
+        });
+      } else if (qt === 'SortIt' || qt === 'SortItPartial') {
+        const btns = document.querySelectorAll('.option button');
+        const corSeq = [questionData.correctAnswer, questionData.correctAnswer2, questionData.correctAnswer3,
+          questionData.correctAnswer4, questionData.correctAnswer5, questionData.correctAnswer6]
+          .filter(a => a).map(a => a.toString().trim().toLowerCase());
+        const userSeq = userAnswer.split(' / ').map(s => s.trim().toLowerCase());
+        btns.forEach(btn => {
+          btn.disabled = true;
+          const sn = btn.querySelector('.sort-number');
+          if (sn) {
+            const pos = parseInt(sn.textContent) - 1;
+            const correct = userSeq[pos] === corSeq[pos];
+            btn.insertAdjacentHTML('afterbegin', correct ? '👍 ' : '👎 ');
+            btn.style.backgroundColor = correct ? 'var(--correct)' : 'var(--incorrect)';
+            btn.style.borderColor = correct ? '#2ea043' : '#da3633';
+            btn.style.color = '#fff';
+          }
+        });
+      } else if (qt === 'Pointfull') {
+        const inp = document.getElementById('answerInput');
+        if (inp) {
+          inp.disabled = true;
+          const m = checkAnswer(userAnswer, q);
+          let tier = 'incorrect';
+          if (m === 1.5) tier = 'tier-6';
+          else if (m === 1.4) tier = 'tier-5';
+          else if (m === 1.3) tier = 'tier-4';
+          else if (m === 1.2) tier = 'tier-3';
+          else if (m === 1.1) tier = 'tier-2';
+          else if (m === 1.0) tier = 'tier-1';
+          inp.className = tier;
+          const cas = [questionData.correctAnswer, questionData.correctAnswer2, questionData.correctAnswer3,
+            questionData.correctAnswer4, questionData.correctAnswer5, questionData.correctAnswer6]
+            .filter(a => a).map(a => a.toString().trim().toLowerCase());
+          document.querySelectorAll('.pointfull-option-item').forEach(item => {
+            const t = item.textContent.trim().toLowerCase();
+            const i = cas.indexOf(t);
+            if (i >= 0) {
+              const emojis = ['✅','⚡','💫','✨','⭐','🌟'];
+              item.style.backgroundColor = 'var(--correct-bg)';
+              item.style.borderColor = 'var(--correct)';
+              item.style.color = 'var(--correct-text)';
+              item.innerHTML = `${emojis[i]} ${item.textContent}`;
+            }
+          });
+        }
+      } else if (qt === 'FirstLetterKP' || qt === 'FirstLetterKPShuffle') {
+        // handled in submitFirstLetterKP
+      } else {
+        const inp = document.getElementById('answerInput');
+        if (inp) { inp.disabled = true; inp.className = isCorrect ? 'correct' : 'incorrect'; }
+      }
+    }
+
+    /* ============================================================
+       LOW BROW HINT
+       ============================================================ */
+    function showLowBrowHint(text) {
+      if (document.getElementById('lowBrowHint')) return;
+      const div = document.createElement('div');
+      div.id = 'lowBrowHint';
+      div.className = 'lowbrow-hint';
+      div.innerHTML = `🧐 Low Brow Hint: ${text}`;
+      const quiz = document.getElementById('quiz');
+      const qDiv = quiz.querySelector('.question-text');
+      if (qDiv && qDiv.parentElement) quiz.insertBefore(div, qDiv.parentElement.nextSibling);
+      else quiz.insertBefore(div, quiz.firstChild);
+    }
+
+    /* ============================================================
+       PROCEED / FINISH
+       ============================================================ */
+    function proceedToNext() {
+      stopTimer();
+      answerSubmitted = false;
+      resetMultipleSelectState();
+      currentQuestionIndex++;
+      if (currentQuestionIndex >= allQuestions.length) finishQuiz();
+      else showCurrentQuestion();
+    }
+
+    function finishQuiz() {
+      stopTimer();
+      showLoading('Calculating your results…');
+      // Compute locally (no server needed)
+      const results = computeDetailedResults();
+      setTimeout(() => displayDetailedResults(results), 400);
+      // Save in background
+      submitResultsToGAS(username, userAnswers, sessionId);
+    }
+
+    /* ============================================================
+       COMPUTE DETAILED RESULTS (client-side)
+       ============================================================ */
+    function computeDetailedResults() {
+      const roundData = {};
+      let totalCorrect = 0, totalTime = 0, totalScoreSum = 0;
+
+      userAnswers.forEach(answer => {
+        const rn = answer.roundNumber;
+        const origQ = allQuestions.find(q => q.roundNumber === answer.roundNumber && q.questionNumber === answer.questionNumber);
+        if (!roundData[rn]) {
+          const firstQ = allQuestions.find(q => q.roundNumber === rn);
+          roundData[rn] = {
+            roundNumber: rn,
+            roundCategory: firstQ ? firstQ.roundCategory : '',
+            questions: [], correctCount: 0, totalQuestions: 0, totalTime: 0, totalScore: 0
+          };
+        }
+        const allCas = origQ ? [
+          origQ.correctAnswer, origQ.correctAnswer2, origQ.correctAnswer3,
+          origQ.correctAnswer4, origQ.correctAnswer5, origQ.correctAnswer6
+        ].filter(a => a != null && a.toString().trim() !== '') : [answer.correctAnswer];
+
+        roundData[rn].questions.push({
+          ...answer,
+          questionText: origQ ? (origQ.question || '') : '',
+          allCorrectAnswers: allCas,
+          explanation: origQ ? (origQ.explanation || '') : ''
+        });
+        roundData[rn].totalQuestions++;
+        roundData[rn].totalTime += answer.duration;
+        roundData[rn].totalScore += answer.score;
+        if (answer.isCorrect) { roundData[rn].correctCount++; totalCorrect++; }
+        totalTime += answer.duration;
+        totalScoreSum += answer.score;
+      });
+
+      return {
+        summary: {
+          totalQuestions: userAnswers.length,
+          totalCorrect,
+          totalTime: Math.round(totalTime * 100) / 100,
+          totalScore: totalScoreSum,
+          accuracy: userAnswers.length > 0 ? Math.round((totalCorrect / userAnswers.length) * 100) : 0,
+          averageTime: userAnswers.length > 0 ? Math.round((totalTime / userAnswers.length) * 100) / 100 : 0
+        },
+        rounds: Object.values(roundData).sort((a, b) => a.roundNumber - b.roundNumber)
+      };
+    }
+
+    /* ============================================================
+       DISPLAY RESULTS
+       ============================================================ */
+    function displayDetailedResults(results) {
+      if (!results || !results.summary) {
+        setQuizHTML(`<div class="results-wrap"><div class="results-header"><h2>Quiz Complete! 🎉</h2><p>Score: <strong>${totalScore}</strong></p></div><div class="results-actions"><button class="btn-play-again" onclick="location.reload()">🔄 Play Again</button></div></div>`);
+        return;
+      }
+      const { summary, rounds } = results;
+      const insights = [];
+      if (summary.accuracy >= 80) insights.push('🎉 Excellent accuracy! You really know your stuff!');
+      else if (summary.accuracy >= 60) insights.push('👍 Good performance! Solid effort overall.');
+      else insights.push('📚 Plenty to work on — but that\'s what practice is for!');
+      if (summary.averageTime <= 5) insights.push('⚡ Lightning fast! Quick thinking under pressure.');
+      else if (summary.averageTime <= 10) insights.push('🤔 Thoughtful pace — you took time to consider answers.');
+      else insights.push('🌿 Take your time, but trust your instincts a bit more!');
+      if (rounds.length > 1) {
+        const sorted = [...rounds].sort((a, b) => b.correctCount - a.correctCount);
+        insights.push(`🏆 Best round: ${sorted[0].roundCategory} (${sorted[0].correctCount}/${sorted[0].totalQuestions} correct)`);
+        insights.push(`💪 Toughest round: ${sorted[sorted.length - 1].roundCategory} — room to improve!`);
+      }
+
+      let html = `<div class="results-wrap">
+        <div class="results-header">
+          <h2>🎉 Quiz Complete! 🎉</h2>
+          <p>Well done, <strong>${username}</strong>! Here's how you got on:</p>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card"><span class="stat-value">${summary.totalScore}</span><span class="stat-label">Total Score</span></div>
+          <div class="stat-card"><span class="stat-value">${summary.totalCorrect}/${summary.totalQuestions}</span><span class="stat-label">Correct</span></div>
+          <div class="stat-card"><span class="stat-value">${summary.accuracy}%</span><span class="stat-label">Accuracy</span></div>
+          <div class="stat-card"><span class="stat-value">${summary.totalTime}s</span><span class="stat-label">Total Time</span></div>
+          <div class="stat-card"><span class="stat-value">${summary.averageTime}s</span><span class="stat-label">Avg / Q</span></div>
+        </div>
+        <div class="insights-box">
+          <h4>📊 Performance Insights</h4>
+          ${insights.map(i => `<div class="insight-item">${i}</div>`).join('')}
+        </div>
+        <div class="round-breakdown">
+          <h3>📋 Round by Round Breakdown</h3>`;
+
+      rounds.forEach(round => {
+        const acc = Math.round(round.correctCount / Math.max(round.totalQuestions, 1) * 100);
+        const avgT = Math.round(round.totalTime / Math.max(round.totalQuestions, 1) * 100) / 100;
+        html += `<div class="round-card">
+          <div class="round-card-header">
+            <div class="round-title">Round ${round.roundNumber}: ${round.roundCategory}</div>
+            <div class="round-stats">
+              <div class="round-stat"><span class="round-stat-value">${round.totalScore}</span><span class="round-stat-label">Score</span></div>
+              <div class="round-stat"><span class="round-stat-value">${round.correctCount}/${round.totalQuestions}</span><span class="round-stat-label">Correct</span></div>
+              <div class="round-stat"><span class="round-stat-value">${acc}%</span><span class="round-stat-label">Accuracy</span></div>
+              <div class="round-stat"><span class="round-stat-value">${avgT}s</span><span class="round-stat-label">Avg Time</span></div>
+            </div>
+          </div>
+          <div class="q-detail-list">`;
+        round.questions.sort((a, b) => a.questionNumber - b.questionNumber).forEach(q => {
+          const correctClass = q.isCorrect ? 'correct' : (q.score > 0 ? 'partial' : 'incorrect');
+          const icon = q.isCorrect ? '✅' : (q.score > 0 ? '🟡' : '❌');
+          const scorePrefix = q.score > 0 ? '+' : '';
+          const time = Math.round(q.duration * 100) / 100;
+          const correctDisplay = q.questionType === 'Impossible' && q.allCorrectAnswers?.length >= 3
+            ? `✅ ${q.allCorrectAnswers[0]} | 🚫 ${q.allCorrectAnswers[1]} | 💥 ${q.allCorrectAnswers[2]}`
+            : (q.allCorrectAnswers?.join(' / ') || q.correctAnswer || '—');
+          html += `<div class="q-detail-item ${correctClass}">
+            <div class="q-detail-head">
+              <div class="q-detail-num">${icon} Q${q.questionNumber}</div>
+              <div class="text-center">
+                <div class="q-detail-pts">${scorePrefix}${q.score} pts</div>
+                <div class="q-detail-time">${time}s</div>
+              </div>
+            </div>
+            <div class="q-detail-text">${q.questionText || ''}</div>
+            <div class="q-detail-answers">
+              <div class="q-detail-answer"><span class="lbl">Your answer:</span><span class="val">${q.userAnswer || 'No answer'}</span></div>
+              <div class="q-detail-answer"><span class="lbl">Correct:</span><span class="val">${correctDisplay}</span></div>
+            </div>
+            ${q.explanation?.trim() ? `<div class="q-detail-expl"><div class="q-detail-expl-inner">💡 ${q.explanation}</div></div>` : ''}
+          </div>`;
+        });
+        html += `</div></div>`;
+      });
+
+      html += `</div>
+        <div class="results-actions">
+          <button class="btn-leaderboard" onclick="openLeaderboard()">🏆 View Leaderboard</button>
+          <button class="btn-play-again" onclick="location.reload()">🔄 Play Again</button>
+        </div>
+        <p style="text-align:center;color:var(--text-dim);font-size:0.85rem;margin-bottom:32px;font-style:italic;">Thanks for playing the RumHam Quiz! 💀</p>
+      </div>`;
+      setQuizHTML(html);
+    }
+
+    /* ============================================================
+       SUBMIT RESULTS TO GAS (background)
+       ============================================================ */
+    async function submitResultsToGAS(user, answers, sid) {
+      if (!CONFIG.GAS_URL || CONFIG.GAS_URL === 'YOUR_GAS_API_URL_HERE') return;
+      try {
+        await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          mode: 'no-cors',  // GAS redirects break CORS — no-cors sends the data silently
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({ action: 'submitAnswers', username: user, answers, sessionId: sid })
+        });
+      } catch (e) {
+        console.warn('Could not save results to GAS:', e);
+      }
+    }
+
+    /* ============================================================
+       LEADERBOARD
+       ============================================================ */
+    function openLeaderboard() {
+      const overlay = document.getElementById('leaderboardOverlay');
+      overlay.classList.add('show');
+      document.getElementById('leaderboardContent').innerHTML = '<div class="spinner-wrap"><div class="spinner"></div><div class="spinner-text">Loading leaderboard…</div></div>';
+      fetchLeaderboard();
+    }
+
+    function closeLeaderboard() {
+      document.getElementById('leaderboardOverlay').classList.remove('show');
+    }
+
+    async function fetchLeaderboard() {
+      if (!CONFIG.GAS_URL || CONFIG.GAS_URL === 'YOUR_GAS_API_URL_HERE') {
+        displayLeaderboard({ error: 'No GAS URL configured. See README.md for setup instructions.' });
+        return;
+      }
+      try {
+        const res = await fetch(`${CONFIG.GAS_URL}?action=leaderboard&limit=${CONFIG.LEADERBOARD_LIMIT}`);
+        const data = await res.json();
+        displayLeaderboard(data);
+      } catch (e) {
+        displayLeaderboard({ error: 'Could not load leaderboard: ' + e.message });
+      }
+    }
+
+    function displayLeaderboard(data) {
+      const container = document.getElementById('leaderboardContent');
+      if (!data || data.error) {
+        container.innerHTML = `<div class="lb-header"><h2>🏆 Leaderboard</h2></div>
+          <div style="text-align:center;padding:32px;color:var(--text-muted);">${data?.error || 'No data available'}</div>
+          <div class="lb-actions"><button class="lb-close" onclick="closeLeaderboard()" style="position:static;border-radius:var(--radius-pill);width:auto;height:auto;padding:10px 20px;">✕ Close</button></div>`;
+        return;
+      }
+      const { leaderboard = [], totalEntries = 0 } = data;
+      const trophies = ['🥇','🥈','🥉'];
+      let html = `<div class="lb-header"><h2>🏆 Leaderboard</h2><p>Top ${leaderboard.length} of ${totalEntries} players</p></div>`;
+      if (leaderboard.length === 0) {
+        html += `<div style="text-align:center;padding:32px;color:var(--text-muted);">No entries yet! Be the first to complete the quiz.</div>`;
+      } else {
+        leaderboard.forEach((player, i) => {
+          const rank = i + 1;
+          const trophy = rank <= 3 ? trophies[i] : '';
+          html += `<div class="lb-entry ${rank <= 3 ? `rank-${rank}` : ''}">
+            ${trophy ? `<div class="lb-trophy">${trophy}</div>` : `<div class="lb-rank">#${rank}</div>`}
+            <div style="margin-left:10px;flex:1;">
+              <div class="lb-name">${player.username || 'Unknown'}</div>
+              <div class="lb-meta">${player.totalCorrect || 0}/${player.questionsAnswered || 0} correct (${player.accuracy || 0}%) • Avg: ${player.avgTime || 0}s</div>
+            </div>
+            <div class="lb-score">${player.totalScore || 0}</div>
+          </div>`;
+        });
+      }
+      html += `<div class="lb-actions">
+        <button class="lb-screenshot-btn" onclick="saveLeaderboardImage()">📸 Save as Image</button>
+      </div>`;
+      container.innerHTML = html;
+    }
+
+    async function saveLeaderboardImage() {
+      const lb = document.querySelector('.lb-card');
+      if (!lb || typeof html2canvas === 'undefined') { showToast('Screenshot not available', 'error'); return; }
+      const btn = document.querySelector('.lb-screenshot-btn');
+      if (btn) btn.style.display = 'none';
+      try {
+        const canvas = await html2canvas(lb, { backgroundColor: '#161b22', scale: 2, logging: false });
+        canvas.toBlob(blob => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.download = `Leaderboard_${new Date().toISOString().slice(0,10)}.png`;
+          a.href = url;
+          a.click();
+          URL.revokeObjectURL(url);
+          showToast('Image saved! ✓', 'success');
+        });
+      } catch (e) {
+        showToast('Could not save image', 'error');
+      } finally {
+        if (btn) btn.style.display = '';
+      }
+    }
+
+    /* ============================================================
+       TIMER
+       ============================================================ */
+    function startQuestionTimer(question) {
+      timeRemaining = parseInt(question.timeAllowed) || 30;
+      createTimerDisplay();
+      updateTimerDisplay();
+      countdownInterval = setInterval(() => {
+        timeRemaining--;
+        updateTimerDisplay();
+        if (timeRemaining <= 0) {
+          stopTimer();
+          if (!answerSubmitted) handleTimeout();
+        }
+      }, 1000);
+    }
+
+    function createTimerDisplay() {
+      const existing = document.getElementById('timerDisplay');
+      if (existing) existing.remove();
+      const div = document.createElement('div');
+      div.id = 'timerDisplay';
+      div.innerHTML = `⏱ <span id="timerSeconds">${timeRemaining}</span>s`;
+      document.body.appendChild(div);
+    }
+
+    function updateTimerDisplay() {
+      const el = document.getElementById('timerSeconds');
+      const display = document.getElementById('timerDisplay');
+      const q = allQuestions[currentQuestionIndex];
+      if (el && display) {
+        el.textContent = timeRemaining;
+        display.className = '';
+        if (timeRemaining <= 5) display.classList.add('critical');
+        else if (timeRemaining <= 10) display.classList.add('warning');
+        const half = Math.ceil((parseInt(q?.timeAllowed) || 30) / 2);
+        if (timeRemaining <= half && q?.lowBrow?.toString().trim()) showLowBrowHint(q.lowBrow);
+        if (timeRemaining <= 0) display.innerHTML = '⏱ Time\'s Up!';
+      }
+    }
+
+    function stopTimer() {
+      if (countdownInterval) clearInterval(countdownInterval);
+      countdownInterval = null;
+      const display = document.getElementById('timerDisplay');
+      if (display) display.remove();
+    }
+
+    // Close leaderboard on overlay click
+    document.getElementById('leaderboardOverlay').addEventListener('click', function(e) {
+      if (e.target === this) closeLeaderboard();
+    });
+  </script>
+</body>
+</html>
