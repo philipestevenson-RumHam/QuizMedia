@@ -631,12 +631,10 @@
     @media (min-width: 641px) and (max-width: 1024px) {
       .desktop-layout {
         aspect-ratio: auto;
-        height: 50vw;       /* explicit height so inner grids can use height:100% */
-        max-height: 480px;  /* cap on large tablets / landscape */
+        max-height: 42vh;
       }
-      /* KP buttons: fill grid cell like desktop, not forced square */
-      .desktop-layout .first-letter-kp-btn { aspect-ratio: auto; width: 100%; height: 100%; }
-      .desktop-layout .first-letter-kp-grid { grid-template-rows: repeat(5, 1fr); }
+      .first-letter-kp-btn { aspect-ratio: auto; }
+      .first-letter-kp-grid { grid-template-rows: repeat(5, 1fr); }
     }
 
     /* Mobile responsive: stack image above options */
