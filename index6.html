@@ -428,15 +428,19 @@
       line-height: 1.5;
     }
 
-    /* Low brow hint — matches question-text style, different colour */
+    /* Low brow hint */
     .lowbrow-hint {
       width: 100%;
       max-width: 900px;
       margin: 8px auto 0;
-      font-size: clamp(1.1rem, 3vw, 1.6rem);
-      font-weight: 700;
-      color: #f5c842;
-      line-height: 1.4;
+      background: var(--card2);
+      border: 1px solid var(--border2);
+      border-left: 4px solid var(--partial);
+      border-radius: var(--radius);
+      padding: 10px 16px;
+      color: var(--partial-text);
+      font-size: 1rem;
+      line-height: 1.5;
     }
 
     /* ==============================
@@ -2176,7 +2180,7 @@
       const div = document.createElement('div');
       div.id = 'lowBrowHint';
       div.className = 'lowbrow-hint';
-      div.innerHTML = text;
+      div.innerHTML = `🧐 Low Brow Hint: ${text}`;
       const quiz = document.getElementById('quiz');
       const qDiv = quiz.querySelector('.question-text');
       if (qDiv && qDiv.parentElement) quiz.insertBefore(div, qDiv.parentElement.nextSibling);
@@ -2201,7 +2205,7 @@
       // Compute locally (no server needed)
       const results = computeDetailedResults();
       setTimeout(() => displayDetailedResults(results), 400);
-      // Submit in background immediately so results are always saved
+      // Save in background
       submitResultsToGAS(username, userAnswers, sessionId);
     }
 
@@ -2339,7 +2343,7 @@
 
       html += `</div>
         <div class="results-actions">
-          <button class="btn-leaderboard" onclick="openLeaderboardAfterSave()">🏆 View Leaderboard</button>
+          <button class="btn-leaderboard" onclick="openLeaderboard()">🏆 View Leaderboard</button>
           <button class="btn-play-again" onclick="location.reload()">🔄 Play Again</button>
         </div>
         <p style="text-align:center;color:var(--text-dim);font-size:0.85rem;margin-bottom:32px;font-style:italic;">Thanks for playing the RumHam Quiz! 💀</p>
@@ -2350,8 +2354,6 @@
     /* ============================================================
        SUBMIT RESULTS TO GAS (background)
        ============================================================ */
-    let resultsSubmitted = false;
-
     async function submitResultsToGAS(user, answers, sid) {
       if (!CONFIG.GAS_URL || CONFIG.GAS_URL === 'YOUR_GAS_API_URL_HERE') return;
       try {
@@ -2361,22 +2363,9 @@
           headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({ action: 'submitAnswers', username: user, answers, sessionId: sid })
         });
-        resultsSubmitted = true;
       } catch (e) {
         console.warn('Could not save results to GAS:', e);
-        resultsSubmitted = true; // don't retry on error
       }
-    }
-
-    async function openLeaderboardAfterSave() {
-      const overlay = document.getElementById('leaderboardOverlay');
-      overlay.classList.add('show');
-      document.getElementById('leaderboardContent').innerHTML = '<div class="spinner-wrap"><div class="spinner"></div><div class="spinner-text">Loading leaderboard…</div></div>';
-      // If results haven't finished submitting yet, give GAS a moment to process
-      if (!resultsSubmitted) {
-        await new Promise(r => setTimeout(r, 1500));
-      }
-      fetchLeaderboard();
     }
 
     /* ============================================================
