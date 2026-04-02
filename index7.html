@@ -580,7 +580,6 @@
       flex-direction: column;
       flex: 1;
       min-height: 0;
-      justify-content: flex-start;
     }
     #answerInput {
       background: var(--card2);
@@ -610,34 +609,18 @@
     .pointfull-options-list {
       display: flex;
       flex-direction: column;
-      gap: 0;
+      gap: 10px;
       height: 100%;
-      justify-content: flex-start;
+      justify-content: center;
     }
     .pointfull-option-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 4px;
-      border-bottom: 1px solid var(--border2);
-      font-size: clamp(0.9rem, 2vw, 1.1rem);
-      font-weight: 600;
-      color: var(--text);
-      line-height: 1.35;
-    }
-    .pointfull-option-item:first-child { border-top: 1px solid var(--border2); }
-    .pointfull-option-num {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      background: var(--accent);
-      color: #fff;
-      font-size: 0.75rem;
-      font-weight: 700;
-      flex-shrink: 0;
+      background: var(--card2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 12px 18px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--text-muted);
     }
 
     /* Tablet responsive: 641px–1024px (iPad) */
@@ -1469,7 +1452,7 @@
           : [q.option1, q.option2, q.option3, q.option4, q.option5, q.option6]
               .filter(o => o != null && o.toString().trim() !== '');
         html += `<div class="pointfull-options-list">`;
-        opts.forEach((o, i) => html += `<div class="pointfull-option-item"><span class="pointfull-option-num">${i + 1}</span>${o}</div>`);
+        opts.forEach(o => html += `<div class="pointfull-option-item">${o}</div>`);
         html += `</div>`;
       } else if (q.media && q.media.endsWith('.mp3')) {
         html += `<audio autoplay src="${q.media}"></audio><div class="media-placeholder"></div>`;
