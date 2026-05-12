@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EFT Request Manager – Pepper Money</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand:       #e8003d;
+    --brand-dark:  #b5002f;
+    --brand-light: #ff3366;
+    --accent:      #e8003d;
+    --success:     #16a34a;
+    --warning:     #d97706;
+    --danger:      #dc2626;
+    --bg:          #f7f7f8;
+    --surface:     #ffffff;
+    --border:      #e2e2e6;
+    --text:        #1a1a2e;
+    --muted:       #6b6b80;
+    --sent-bg:     #f0fdf4;
+    --sent-text:   #166534;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+
+  /* ── Header ── */
+  header {
+    background: #ffffff;
+    border-bottom: 3px solid var(--brand);
+    color: var(--text); padding: 0 24px;
+    display: flex; align-items: stretch; justify-content: space-between;
+    box-shadow: 0 2px 12px rgba(0,0,0,.08);
+    min-height: 64px;
+  }
+  .header-left { display: flex; align-items: center; gap: 20px; }
+  .pepper-logo {
+    display: flex; align-items: center; gap: 0;
+    font-size: 1.45rem; font-weight: 800; letter-spacing: -.02em; line-height: 1;
+    text-decoration: none; padding: 0 20px 0 0; border-right: 1px solid var(--border);
+  }
+  .pepper-logo .pepper { color: var(--brand); }
+  .pepper-logo .money  { color: var(--text); }
+  .pepper-logo .dot    { color: var(--brand); font-size: 2rem; line-height: .5; vertical-align: middle; margin: 0 1px; }
+  header h1 { font-size: 1rem; font-weight: 700; color: var(--text); letter-spacing: -.01em; }
+  header h1 span { font-size: .72rem; font-weight: 400; color: var(--muted); display: block; margin-top: 1px; }
+  .header-btns { display: flex; gap: 8px; align-items: center; }
+  .file-name { font-size: .75rem; color: var(--muted); margin-right: 8px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ── Buttons ── */
+  button { cursor: pointer; border: none; border-radius: 6px; font-size: .82rem; font-weight: 600; padding: 7px 14px; transition: background .15s, opacity .15s, transform .1s; }
+  button:active { transform: scale(.97); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-primary   { background: var(--brand); color: #fff; }
+  .btn-primary:hover { background: var(--brand-dark); }
+  .btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--bg); }
+  .btn-success   { background: var(--success);  color: #fff; }
+  .btn-warning   { background: var(--warning);  color: #fff; }
+  .btn-danger    { background: var(--danger);   color: #fff; }
+  .btn-outline   { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-outline:hover { border-color: var(--brand); color: var(--brand); }
+  .btn-sm        { padding: 4px 9px; font-size: .75rem; }
+  .btn-icon      { background: transparent; color: var(--muted); padding: 4px 6px; font-size: .85rem; }
+  .btn-icon:hover { color: var(--brand); }
+
+  /* ── Welcome / Landing ── */
+  #landing {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: calc(100vh - 58px); gap: 20px; padding: 40px;
+  }
+  .landing-card {
+    background: var(--surface); border-radius: 16px; padding: 48px 56px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.1); text-align: center; max-width: 480px; width: 100%;
+  }
+  .landing-icon { font-size: 3rem; margin-bottom: 16px; }
+  .landing-card h2 { font-size: 1.4rem; margin-bottom: 8px; color: var(--brand); font-weight: 800; }
+  .landing-card p  { color: var(--muted); margin-bottom: 28px; line-height: 1.6; }
+  .landing-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+  /* ── App shell ── */
+  #app { display: none; padding: 20px 24px; }
+
+  /* ── Stats bar ── */
+  .stats { display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+  .stat-card {
+    background: var(--surface); border-radius: 10px; padding: 12px 20px;
+    border: 1px solid var(--border); flex: 1; min-width: 120px;
+  }
+  .stat-card .val { font-size: 1.5rem; font-weight: 800; color: var(--brand); }
+  .stat-card .lbl { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 500; }
+
+  /* ── Toolbar ── */
+  .toolbar {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 16px; margin-bottom: 16px;
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  }
+  .search-wrap { position: relative; flex: 1; min-width: 180px; }
+  .search-wrap input {
+    width: 100%; padding: 7px 34px 7px 12px; border: 1px solid var(--border);
+    border-radius: 6px; font-size: .85rem; color: var(--text);
+    background: var(--bg);
+  }
+  .search-wrap input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 2px rgba(232,0,61,.1); }
+  .search-wrap .clear-search {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: var(--muted); cursor: pointer; font-size: .9rem; padding: 0;
+  }
+  .filter-select {
+    padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px;
+    font-size: .82rem; color: var(--text); background: var(--bg);
+  }
+  .toolbar-spacer { flex: 1; }
+
+  /* ── Table ── */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 900px; }
+  thead th {
+    background: var(--brand); color: #fff; padding: 10px 12px;
+    text-align: left; font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
+    white-space: nowrap; user-select: none; cursor: pointer;
+  }
+  thead th:hover { background: var(--brand-dark); }
+  thead th.sorted-asc::after  { content: ' ▲'; font-size: .65rem; }
+  thead th.sorted-desc::after { content: ' ▼'; font-size: .65rem; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #f8fafc; }
+  tbody tr.sent-row { background: var(--sent-bg); }
+  tbody tr.sent-row:hover { background: #dcfce7; }
+  td { padding: 9px 12px; vertical-align: middle; }
+  td.idx    { color: var(--muted); font-size: .78rem; width: 48px; }
+  td.amount { font-weight: 700; font-variant-numeric: tabular-nums; }
+  td.actions { white-space: nowrap; }
+  .badge-sent     { background: #dcfce7; color: var(--sent-text); padding: 2px 8px; border-radius: 99px; font-size: .72rem; font-weight: 700; }
+  .badge-unsent   { background: #fef9c3; color: #854d0e;  padding: 2px 8px; border-radius: 99px; font-size: .72rem; font-weight: 700; }
+  .no-records { text-align: center; color: var(--muted); padding: 48px; }
+
+  /* ── Modal ── */
+  .modal-backdrop {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.45); z-index: 100;
+    align-items: center; justify-content: center;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--surface); border-radius: 14px; width: 100%; max-width: 540px;
+    box-shadow: 0 12px 48px rgba(0,0,0,.25); overflow: hidden;
+    animation: slideUp .2s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal-header {
+    background: var(--brand); color: #fff; padding: 16px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-header h3 { font-size: 1rem; font-weight: 700; }
+  .modal-close { background: none; border: none; color: rgba(255,255,255,.8); font-size: 1.2rem; cursor: pointer; padding: 0 4px; }
+  .modal-close:hover { color: #fff; }
+  .modal-body { padding: 24px 20px; }
+  .modal-footer { padding: 12px 20px 20px; display: flex; gap: 10px; justify-content: flex-end; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .form-row.full { grid-template-columns: 1fr; }
+  .form-group label { display: block; font-size: .78rem; font-weight: 600; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
+  .form-group input, .form-group select {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border);
+    border-radius: 6px; font-size: .88rem; color: var(--text); background: var(--bg);
+    transition: border-color .15s;
+  }
+  .form-group input:focus, .form-group select:focus {
+    outline: none; border-color: var(--brand); box-shadow: 0 0 0 2px rgba(232,0,61,.12);
+  }
+  .form-group input.error { border-color: var(--danger); }
+  .form-meta { font-size: .75rem; color: var(--muted); margin-bottom: 14px; padding: 8px 10px; background: var(--bg); border-radius: 6px; line-height: 1.8; }
+  .section-divider {
+    font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--brand); margin-bottom: 8px; padding-bottom: 4px;
+    border-bottom: 2px solid var(--brand); display: flex; align-items: center; gap: 6px;
+  }
+
+  /* ── Export modal ── */
+  .export-option {
+    border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer;
+    display: flex; align-items: flex-start; gap: 12px;
+    transition: border-color .15s, background .15s;
+  }
+  .export-option:hover { border-color: var(--brand); background: #fff0f3; }
+  .export-option input[type=radio] { margin-top: 2px; flex-shrink: 0; accent-color: var(--brand); width: 15px; height: 15px; cursor: pointer; }
+  .export-option-text { display: flex; flex-direction: column; gap: 3px; }
+  .export-option strong { font-size: .88rem; color: var(--text); font-weight: 600; }
+  .export-option span { font-size: .8rem; color: var(--muted); line-height: 1.4; }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed; bottom: 24px; right: 24px; z-index: 200;
+    background: var(--brand); color: #fff; padding: 10px 20px; border-radius: 8px;
+    font-size: .85rem; font-weight: 600; box-shadow: 0 4px 16px rgba(0,0,0,.2);
+    opacity: 0; transform: translateY(12px); transition: opacity .25s, transform .25s; pointer-events: none;
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+  #toast.success { background: var(--success); }
+  #toast.warning { background: var(--warning); }
+  #toast.error   { background: var(--danger); }
+
+  /* ── Unsaved dot ── */
+  .unsaved-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #facc15; margin-left: 6px; vertical-align: middle; }
+
+  /* ── Tabs ── */
+  .tab-nav {
+    display: flex; gap: 0; margin-bottom: 18px;
+    border-bottom: 2px solid var(--border); 
+  }
+  .tab-btn {
+    background: none; border: none; border-radius: 0; padding: 10px 22px;
+    font-size: .88rem; font-weight: 600; color: var(--muted); cursor: pointer;
+    border-bottom: 3px solid transparent; margin-bottom: -2px;
+    transition: color .15s, border-color .15s;
+  }
+  .tab-btn:hover { color: var(--brand); }
+  .tab-btn.active { color: var(--brand); border-bottom-color: var(--brand); }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* ── Stats dashboard ── */
+  .stats-toggle {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 16px; width: fit-content;
+  }
+  .stats-toggle label { font-size: .85rem; font-weight: 600; color: var(--text); cursor: pointer; }
+  .toggle-switch { position: relative; width: 40px; height: 22px; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; inset: 0; background: var(--border); border-radius: 99px;
+    cursor: pointer; transition: background .2s;
+  }
+  .toggle-slider::before {
+    content: ''; position: absolute; width: 16px; height: 16px; border-radius: 50%;
+    background: #fff; top: 3px; left: 3px; transition: transform .2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,.2);
+  }
+  .toggle-switch input:checked + .toggle-slider { background: var(--brand); }
+  .toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+  .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .dash-grid.wide { grid-template-columns: 1fr; }
+  .dash-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px 20px; overflow: hidden;
+  }
+  .dash-card h3 { font-size: .82rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 14px; }
+  .dash-table { width: 100%; border-collapse: collapse; font-size: .83rem; }
+  .dash-table th { text-align: left; padding: 6px 10px; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); border-bottom: 1px solid var(--border); }
+  .dash-table td { padding: 8px 10px; border-bottom: 1px solid #f1f1f4; vertical-align: middle; }
+  .dash-table tr:last-child td { border-bottom: none; }
+  .dash-table tr:hover td { background: #fafafa; }
+  .dash-table td.num { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; }
+  .dash-table td.name { font-weight: 500; }
+  .bar-inline { height: 6px; border-radius: 3px; background: var(--brand); opacity: .75; display: inline-block; vertical-align: middle; margin-left: 6px; }
+  .pill-sent   { background: #dcfce7; color: #166534; padding: 2px 7px; border-radius: 99px; font-size: .72rem; font-weight: 700; }
+  .pill-unsent { background: #fef9c3; color: #854d0e; padding: 2px 7px; border-radius: 99px; font-size: .72rem; font-weight: 700; }
+  canvas.chart { width: 100% !important; height: 200px; display: block; }
+  .no-data { text-align: center; color: var(--muted); padding: 32px; font-size: .85rem; }
+  @media (max-width: 640px) {
+    header { flex-direction: column; gap: 10px; align-items: flex-start; }
+    .form-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════ HEADER ══════════ -->
+<header>
+  <div class="header-left">
+    <a class="pepper-logo" href="#" onclick="return false;">
+      <span class="pepper">pepper</span><span class="dot">·</span><span class="money">money</span>
+    </a>
+    <h1>EFT Request Manager <span>Electronic Fund Transfer Tracking</span></h1>
+  </div>
+  <div class="header-btns">
+    <span class="file-name" id="fileNameDisplay">No file open</span>
+    <button class="btn-secondary" onclick="openFile()">📂 Open File</button>
+    <button class="btn-secondary" onclick="newFile()">✨ New File</button>
+    <button class="btn-secondary" id="saveBtn" onclick="saveFile()" disabled>💾 Save<span class="unsaved-dot" id="unsavedDot" style="display:none"></span></button>
+  </div>
+</header>
+
+<!-- ══════════ LANDING ══════════ -->
+<div id="landing">
+  <div class="landing-card">
+    <div class="landing-icon" style="font-size:2.2rem; margin-bottom:12px; color:var(--brand)">💸</div>
+    <div style="font-size:.7rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--brand); margin-bottom:8px;">Pepper Money</div>
+    <h2>EFT Request Manager</h2>
+    <p>Open an existing CSV data file or create a new one to start managing your Electronic Fund Transfer requests.</p>
+    <div class="landing-actions">
+      <button class="btn-primary" onclick="openFile()">📂 Open Existing File</button>
+      <button class="btn-outline" onclick="newFile()">✨ Create New File</button>
+    </div>
+    <p style="margin-top:20px; font-size:.78rem; color:var(--muted)">⚠️ Works best in Chrome or Edge. Data is saved directly to your local CSV file.</p>
+  </div>
+</div>
+
+<!-- ══════════ MAIN APP ══════════ -->
+<div id="app">
+
+  <!-- Stats bar -->
+  <div class="stats">
+    <div class="stat-card"><div class="val" id="statTotal">0</div><div class="lbl">Total Requests</div></div>
+    <div class="stat-card"><div class="val" id="statUnsent">0</div><div class="lbl">Unsent</div></div>
+    <div class="stat-card"><div class="val" id="statSent">0</div><div class="lbl">Sent</div></div>
+    <div class="stat-card"><div class="val" id="statTotal£">£0.00</div><div class="lbl">Total Unsent Value</div></div>
+  </div>
+
+  <!-- Tab nav -->
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('requests')">📋 Requests</button>
+    <button class="tab-btn" onclick="switchTab('statistics')">📊 Statistics</button>
+  </div>
+
+  <!-- ── REQUESTS TAB ── -->
+  <div class="tab-pane active" id="tab-requests">
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="search-wrap">
+        <input type="text" id="searchInput" placeholder="🔍  Search by user, project, pool, customer name, sort code…" oninput="applyFilters()">
+        <button class="clear-search" onclick="clearSearch()" title="Clear search">✕</button>
+      </div>
+      <select class="filter-select" id="filterSent" onchange="applyFilters()">
+        <option value="all">All records</option>
+        <option value="unsent">Unsent only</option>
+        <option value="sent">Sent only</option>
+      </select>
+      <button class="btn-outline btn-sm" onclick="openExportModal()">📤 Export</button>
+      <button class="btn-primary" onclick="openAddModal()">＋ Add Request</button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th onclick="sortBy('index')"             data-col="index">#</th>
+            <th onclick="sortBy('timeAdded')"         data-col="timeAdded">Time Added</th>
+            <th onclick="sortBy('timeEdited')"        data-col="timeEdited">Time Edited</th>
+            <th onclick="sortBy('user')"              data-col="user">User</th>
+            <th onclick="sortBy('pool')"              data-col="pool">Pool</th>
+            <th onclick="sortBy('poolAccountNumber')" data-col="poolAccountNumber">Pool Acct No.</th>
+            <th onclick="sortBy('customerName')"      data-col="customerName">Cust. Name</th>
+            <th onclick="sortBy('sortCode')"          data-col="sortCode">Cust. Sort Code</th>
+            <th onclick="sortBy('accountNumber')"     data-col="accountNumber">Cust. Bank Acct</th>
+            <th onclick="sortBy('amount')"            data-col="amount">Amount</th>
+            <th onclick="sortBy('project')"           data-col="project">Project</th>
+            <th onclick="sortBy('sent')"              data-col="sent">Sent</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <div style="font-size:.75rem; color:var(--muted); margin-top:8px; text-align:right" id="rowCount"></div>
+  </div>
+
+  <!-- ── STATISTICS TAB ── -->
+  <div class="tab-pane" id="tab-statistics">
+    <div class="stats-toggle">
+      <label for="statsToggle">Show unsent only</label>
+      <label class="toggle-switch">
+        <input type="checkbox" id="statsToggle" onchange="renderStats()">
+        <span class="toggle-slider"></span>
+      </label>
+      <span id="statsToggleLabel" style="font-size:.8rem; color:var(--muted);">Showing all records</span>
+    </div>
+
+    <!-- Row 1: Project + User -->
+    <div class="dash-grid">
+      <div class="dash-card">
+        <h3>📁 By Project</h3>
+        <table class="dash-table" id="statsProjectTable"><tr><td class="no-data">No data</td></tr></table>
+      </div>
+      <div class="dash-card">
+        <h3>👤 By User</h3>
+        <table class="dash-table" id="statsUserTable"><tr><td class="no-data">No data</td></tr></table>
+      </div>
+    </div>
+
+    <!-- Row 2: Over time chart -->
+    <div class="dash-grid wide">
+      <div class="dash-card">
+        <h3>📅 Requests Over Time <span style="font-weight:400; text-transform:none; letter-spacing:0">(by month)</span></h3>
+        <canvas class="chart" id="chartTime"></canvas>
+      </div>
+    </div>
+
+    <!-- Row 3: Pool + Amount distribution -->
+    <div class="dash-grid">
+      <div class="dash-card">
+        <h3>🏦 By Pool</h3>
+        <table class="dash-table" id="statsPoolTable"><tr><td class="no-data">No data</td></tr></table>
+      </div>
+      <div class="dash-card">
+        <h3>💷 Amount Breakdown</h3>
+        <canvas class="chart" id="chartAmount" style="height:180px"></canvas>
+        <div id="statsAmountSummary" style="margin-top:12px; font-size:.82rem; color:var(--muted);"></div>
+      </div>
+    </div>
+
+  </div><!-- /tab-statistics -->
+</div><!-- /app -->
+
+<!-- ══════════ ADD / EDIT MODAL ══════════ -->
+<div class="modal-backdrop" id="recordModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Add EFT Request</h3>
+      <button class="modal-close" onclick="closeModal('recordModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-meta" id="modalMeta" style="display:none"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>User *</label>
+          <input type="text" id="fUser" placeholder="e.g. J.Smith" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label>Project *</label>
+          <input type="text" id="fProject" placeholder="e.g. PRJ-2026-001" autocomplete="off">
+        </div>
+      </div>
+      <div class="section-divider" style="margin-bottom:12px;">🏦 Our Reference</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Pool *</label>
+          <input type="text" id="fPool" placeholder="e.g. POOL-01" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label>Pool Account Number *</label>
+          <input type="text" id="fPoolAccountNumber" placeholder="12345678" maxlength="20" autocomplete="off">
+        </div>
+      </div>
+      <div class="section-divider" style="margin-bottom:12px;">👤 Customer Details</div>
+      <div class="form-row full">
+        <div class="form-group">
+          <label>Customer Name *</label>
+          <input type="text" id="fCustomerName" placeholder="e.g. Jane Doe" autocomplete="off">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Customer Sort Code *</label>
+          <input type="text" id="fSortCode" placeholder="12-34-56" maxlength="8" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label>Customer Bank Account *</label>
+          <input type="text" id="fAccountNumber" placeholder="12345678" maxlength="20" autocomplete="off">
+        </div>
+      </div>
+      <div class="form-row full">
+        <div class="form-group">
+          <label>Amount (£) *</label>
+          <input type="number" id="fAmount" placeholder="0.00" step="0.01" min="0.01" autocomplete="off">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="closeModal('recordModal')">Cancel</button>
+      <button class="btn-primary" id="modalSaveBtn" onclick="saveRecord()">Save Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ EXPORT MODAL ══════════ -->
+<div class="modal-backdrop" id="exportModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>📤 Export Records</h3>
+      <button class="modal-close" onclick="closeModal('exportModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <label class="export-option">
+        <input type="radio" name="exportType" value="all" checked>
+        <div class="export-option-text">
+          <strong>All records</strong>
+          <span>Export every request regardless of sent status.</span>
+        </div>
+      </label>
+      <label class="export-option">
+        <input type="radio" name="exportType" value="unsent">
+        <div class="export-option-text">
+          <strong>Unsent records only</strong>
+          <span>Export only requests that haven't been sent to finance yet.</span>
+        </div>
+      </label>
+      <label class="export-option">
+        <input type="radio" name="exportType" value="filtered">
+        <div class="export-option-text">
+          <strong>Current filtered view</strong>
+          <span>Export exactly what's visible in the table right now.</span>
+        </div>
+      </label>
+      <div style="margin-top:14px; padding:12px 14px; background:var(--bg); border-radius:8px; border:1px solid var(--border);">
+        <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:.85rem; color:var(--text);">
+          <input type="checkbox" id="markSentAfterExport" style="accent-color:var(--brand); width:15px; height:15px; flex-shrink:0; cursor:pointer;">
+          <span>Mark exported unsent records as <strong>Sent</strong> after export</span>
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="closeModal('exportModal')">Cancel</button>
+      <button class="btn-success" onclick="doExport()">Download CSV</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ CONFIRM MODAL ══════════ -->
+<div class="modal-backdrop" id="confirmModal">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <h3 id="confirmTitle">Confirm</h3>
+      <button class="modal-close" onclick="closeModal('confirmModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="confirmMessage" style="line-height:1.6; color:var(--text); font-size:.92rem;"></p>
+      <p style="margin-top:10px; font-size:.8rem; color:var(--muted);">This cannot be undone.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="closeModal('confirmModal')">Cancel</button>
+      <button class="btn-danger" id="confirmOkBtn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ TOAST ══════════ -->
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  DATA
+// ══════════════════════════════════════════════════════
+let records   = [];      // array of record objects
+let fileHandle = null;   // File System Access API handle
+let editingIdx = null;   // null = adding, number = editing (by record.index)
+let sortCol    = 'index';
+let sortAsc    = true;
+let filteredRecords = [];
+let unsaved    = false;
+let lastKnownModified = 0; // timestamp of file when last read
+
+const COLS = ['Index','Time Added','Time Edited','User','Pool','Pool Account Number','Customer Name','Customer Sort Code','Customer Bank Account','Amount','Project','Sent'];
+
+// ── CSV helpers ───────────────────────────────────────
+function csvEscape(v) {
+  const s = String(v === null || v === undefined ? '' : v);
+  if (s.includes(',') || s.includes('"') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+
+function csvParseLine(line) {
+  const fields = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQ) {
+      if (c === '"' && line[i+1] === '"') { cur += '"'; i++; }
+      else if (c === '"') inQ = false;
+      else cur += c;
+    } else {
+      if (c === '"') inQ = true;
+      else if (c === ',') { fields.push(cur); cur = ''; }
+      else cur += c;
+    }
+  }
+  fields.push(cur);
+  return fields;
+}
+
+function recordsToCsv(recs) {
+  const rows = [COLS.map(csvEscape).join(',')];
+  for (const r of recs) {
+    rows.push([
+      r.index, r.timeAdded, r.timeEdited, r.user,
+      r.pool, r.poolAccountNumber, r.customerName, r.sortCode, r.accountNumber, r.amount, r.project,
+      r.sent ? 'TRUE' : 'FALSE'
+    ].map(csvEscape).join(','));
+  }
+  return rows.join('\r\n');
+}
+
+function csvToRecords(text) {
+  const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').filter(l => l.trim());
+  if (!lines.length) return [];
+  const out = [];
+  for (let i = 1; i < lines.length; i++) {
+    const f = csvParseLine(lines[i]);
+    if (f.length < 9 && f.every(x => !x.trim())) continue;
+    out.push({
+      index:             parseInt(f[0]) || i,
+      timeAdded:         f[1] || '',
+      timeEdited:        f[2] || '',
+      user:              f[3] || '',
+      pool:              f[4] || '',
+      poolAccountNumber: f[5] || '',
+      customerName:      f[6] || '',
+      sortCode:          f[7] || '',
+      accountNumber:     f[8] || '',
+      amount:            parseFloat(f[9]) || 0,
+      project:           f[10] || '',
+      sent:              (f[11] || '').toUpperCase() === 'TRUE'
+    });
+  }
+  return out;
+}
+
+// ── File helpers ──────────────────────────────────────
+function nextIndex() {
+  return records.length ? Math.max(...records.map(r => r.index)) + 1 : 1;
+}
+
+function nowISO() {
+  return new Date().toISOString().replace('T', ' ').substring(0, 19);
+}
+
+function markUnsaved() {
+  unsaved = true;
+  document.getElementById('unsavedDot').style.display = '';
+  document.getElementById('saveBtn').disabled = false;
+}
+
+// ── File System Access API ────────────────────────────
+async function openFile() {
+  if (!window.showOpenFilePicker) { alert('Your browser does not support the File System Access API.\nPlease use Chrome or Edge.'); return; }
+  try {
+    const [handle] = await window.showOpenFilePicker({
+      types: [{ description: 'CSV Files', accept: { 'text/csv': ['.csv'] } }],
+      multiple: false
+    });
+    fileHandle = handle;
+    const file = await handle.getFile();
+    const text = await file.text();
+    records = csvToRecords(text);
+    lastKnownModified = file.lastModified;
+    document.getElementById('fileNameDisplay').textContent = file.name;
+    unsaved = false;
+    document.getElementById('unsavedDot').style.display = 'none';
+    document.getElementById('saveBtn').disabled = false;
+    showApp();
+    applyFilters();
+    toast('Opened: ' + file.name, 'success');
+  } catch (e) {
+    if (e.name !== 'AbortError') toast('Could not open file: ' + e.message, 'error');
+  }
+}
+
+async function newFile() {
+  if (!window.showSaveFilePicker) { alert('Your browser does not support the File System Access API.\nPlease use Chrome or Edge.'); return; }
+  try {
+    fileHandle = await window.showSaveFilePicker({
+      suggestedName: 'EFT_Requests.csv',
+      types: [{ description: 'CSV Files', accept: { 'text/csv': ['.csv'] } }]
+    });
+    records = [];
+    const file = await fileHandle.getFile();
+    lastKnownModified = file.lastModified;
+    document.getElementById('fileNameDisplay').textContent = file.name;
+    unsaved = true;
+    document.getElementById('unsavedDot').style.display = '';
+    document.getElementById('saveBtn').disabled = false;
+    showApp();
+    applyFilters();
+    await saveFile();
+    toast('New file created: ' + file.name, 'success');
+  } catch (e) {
+    if (e.name !== 'AbortError') toast('Could not create file: ' + e.message, 'error');
+  }
+}
+
+async function saveFile() {
+  if (!fileHandle) return;
+  try {
+    // ── Read current file state before writing ──────────
+    const currentFile = await fileHandle.getFile();
+    let mergeCount = 0;
+
+    if (currentFile.lastModified > lastKnownModified) {
+      // File has changed on disk since we last read it — merge first
+      const diskText = await currentFile.text();
+      const diskRecords = csvToRecords(diskText);
+
+      // Build a map of our current records by index for quick lookup
+      const ourMap = {};
+      records.forEach(r => ourMap[r.index] = r);
+
+      // Find records on disk that we don't have at all (added by someone else)
+      for (const dr of diskRecords) {
+        if (!ourMap[dr.index]) {
+          records.push(dr);
+          mergeCount++;
+        }
+        // If both have it, our version wins (we were editing it)
+      }
+
+      // Re-sort by index to keep things tidy
+      records.sort((a, b) => a.index - b.index);
+    }
+
+    // ── Write merged result ─────────────────────────────
+    const writable = await fileHandle.createWritable();
+    await writable.write(recordsToCsv(records));
+    await writable.close();
+
+    // Update our timestamp to the freshly written file
+    const savedFile = await fileHandle.getFile();
+    lastKnownModified = savedFile.lastModified;
+
+    unsaved = false;
+    document.getElementById('unsavedDot').style.display = 'none';
+    document.getElementById('saveBtn').disabled = true;
+
+    if (mergeCount > 0) {
+      updateStats();
+      applyFilters();
+      toast(`Saved ✓ — merged ${mergeCount} new record${mergeCount !== 1 ? 's' : ''} added by others`, 'warning');
+    } else {
+      toast('Saved ✓', 'success');
+    }
+  } catch (e) {
+    toast('Save failed: ' + e.message, 'error');
+  }
+}
+
+// ── UI state ──────────────────────────────────────────
+function showApp() {
+  document.getElementById('landing').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  updateStats();
+}
+
+// ── Stats ─────────────────────────────────────────────
+function updateStats() {
+  const total   = records.length;
+  const sent    = records.filter(r => r.sent).length;
+  const unsent  = total - sent;
+  const unsentVal = records.filter(r => !r.sent).reduce((s, r) => s + (r.amount||0), 0);
+  document.getElementById('statTotal').textContent  = total;
+  document.getElementById('statSent').textContent   = sent;
+  document.getElementById('statUnsent').textContent = unsent;
+  document.getElementById('statTotal£').textContent = '£' + unsentVal.toLocaleString('en-GB', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+// ── Filters & sort ────────────────────────────────────
+function applyFilters() {
+  const q     = document.getElementById('searchInput').value.trim().toLowerCase();
+  const fSent = document.getElementById('filterSent').value;
+
+  filteredRecords = records.filter(r => {
+    if (fSent === 'sent'   && !r.sent)  return false;
+    if (fSent === 'unsent' && r.sent)   return false;
+    if (!q) return true;
+    return (
+      String(r.index).includes(q) ||
+      r.user.toLowerCase().includes(q) ||
+      r.project.toLowerCase().includes(q) ||
+      (r.pool||'').toLowerCase().includes(q) ||
+      (r.poolAccountNumber||'').toLowerCase().includes(q) ||
+      (r.customerName||'').toLowerCase().includes(q) ||
+      r.sortCode.toLowerCase().includes(q) ||
+      r.accountNumber.toLowerCase().includes(q) ||
+      String(r.amount).includes(q) ||
+      r.timeAdded.toLowerCase().includes(q)
+    );
+  });
+
+  // Sort
+  filteredRecords.sort((a, b) => {
+    let va = a[sortCol], vb = b[sortCol];
+    if (sortCol === 'amount') { va = parseFloat(va)||0; vb = parseFloat(vb)||0; }
+    else if (sortCol === 'sent') { va = va ? 1 : 0; vb = vb ? 1 : 0; }
+    else { va = String(va).toLowerCase(); vb = String(vb).toLowerCase(); }
+    if (va < vb) return sortAsc ? -1 : 1;
+    if (va > vb) return sortAsc ?  1 : -1;
+    return 0;
+  });
+
+  renderTable();
+}
+
+function sortBy(col) {
+  if (sortCol === col) sortAsc = !sortAsc;
+  else { sortCol = col; sortAsc = true; }
+  document.querySelectorAll('thead th').forEach(th => {
+    th.classList.remove('sorted-asc','sorted-desc');
+    if (th.dataset.col === col) th.classList.add(sortAsc ? 'sorted-asc' : 'sorted-desc');
+  });
+  applyFilters();
+}
+
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  applyFilters();
+}
+
+// ── Table render ──────────────────────────────────────
+function fmtDt(s) {
+  if (!s) return '—';
+  // Display as DD/MM/YYYY HH:MM
+  try {
+    const d = new Date(s.replace(' ','T'));
+    if (isNaN(d)) return s;
+    return d.toLocaleDateString('en-GB') + ' ' + d.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
+  } catch { return s; }
+}
+
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+  if (!filteredRecords.length) {
+    tbody.innerHTML = '<tr><td colspan="13" class="no-records">No records found.</td></tr>';
+    document.getElementById('rowCount').textContent = '';
+    return;
+  }
+  tbody.innerHTML = filteredRecords.map(r => `
+    <tr class="${r.sent ? 'sent-row' : ''}">
+      <td class="idx">${r.index}</td>
+      <td>${fmtDt(r.timeAdded)}</td>
+      <td>${fmtDt(r.timeEdited) || '—'}</td>
+      <td>${esc(r.user)}</td>
+      <td>${esc(r.pool)}</td>
+      <td>${esc(r.poolAccountNumber)}</td>
+      <td>${esc(r.customerName)}</td>
+      <td>${esc(r.sortCode)}</td>
+      <td>${esc(r.accountNumber)}</td>
+      <td class="amount">£${(r.amount||0).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+      <td>${esc(r.project)}</td>
+      <td><span class="${r.sent ? 'badge-sent' : 'badge-unsent'}">${r.sent ? '✓ Sent' : 'Pending'}</span></td>
+      <td class="actions">
+        <button class="btn-icon btn-sm" title="Edit" onclick="openEditModal(${r.index})">✏️</button>
+        ${!r.sent ? `<button class="btn-icon btn-sm" title="Mark as Sent" onclick="markSent(${r.index})">📤</button>` : `<button class="btn-icon btn-sm" title="Mark as Unsent" onclick="markUnsent(${r.index})">↩️</button>`}
+        <button class="btn-icon btn-sm" title="Delete" onclick="deleteRecord(${r.index})" style="color:var(--danger)">🗑️</button>
+      </td>
+    </tr>
+  `).join('');
+  const tot = filteredRecords.length;
+  const shown = tot < records.length ? `Showing ${tot} of ${records.length} records` : `${tot} record${tot!==1?'s':''}`;
+  document.getElementById('rowCount').textContent = shown;
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Add / Edit modal ──────────────────────────────────
+function openAddModal() {
+  editingIdx = null;
+  document.getElementById('modalTitle').textContent = 'Add EFT Request';
+  document.getElementById('modalSaveBtn').textContent = 'Save Request';
+  document.getElementById('modalMeta').style.display = 'none';
+  clearFormFields();
+  document.getElementById('recordModal').classList.add('open');
+  document.getElementById('fUser').focus();
+}
+
+function openEditModal(idx) {
+  const r = records.find(x => x.index === idx);
+  if (!r) return;
+  editingIdx = idx;
+  document.getElementById('modalTitle').textContent = 'Edit EFT Request #' + idx;
+  document.getElementById('modalSaveBtn').textContent = 'Save Changes';
+  const meta = document.getElementById('modalMeta');
+  meta.style.display = '';
+  meta.innerHTML = `<b>Index:</b> ${r.index} &nbsp;|&nbsp; <b>Added:</b> ${fmtDt(r.timeAdded)} &nbsp;|&nbsp; <b>Last edited:</b> ${fmtDt(r.timeEdited)||'Never'} &nbsp;|&nbsp; <b>Status:</b> ${r.sent ? '✓ Sent' : 'Pending'}`;
+  document.getElementById('fUser').value              = r.user;
+  document.getElementById('fProject').value           = r.project;
+  document.getElementById('fPool').value              = r.pool;
+  document.getElementById('fPoolAccountNumber').value = r.poolAccountNumber;
+  document.getElementById('fCustomerName').value      = r.customerName;
+  document.getElementById('fSortCode').value          = r.sortCode;
+  document.getElementById('fAccountNumber').value     = r.accountNumber;
+  document.getElementById('fAmount').value        = r.amount;
+  document.getElementById('recordModal').classList.add('open');
+  document.getElementById('fUser').focus();
+}
+
+function clearFormFields() {
+  ['fUser','fProject','fPool','fPoolAccountNumber','fCustomerName','fSortCode','fAccountNumber','fAmount'].forEach(id => {
+    const el = document.getElementById(id);
+    el.value = '';
+    el.classList.remove('error');
+  });
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+function saveRecord() {
+  // Validate
+  const user    = document.getElementById('fUser').value.trim();
+  const project = document.getElementById('fProject').value.trim();
+  const pool    = document.getElementById('fPool').value.trim();
+  const poolAcct= document.getElementById('fPoolAccountNumber').value.trim();
+  const custName= document.getElementById('fCustomerName').value.trim();
+  const sc      = document.getElementById('fSortCode').value.trim();
+  const acct    = document.getElementById('fAccountNumber').value.trim();
+  const amt     = parseFloat(document.getElementById('fAmount').value);
+
+  let valid = true;
+  const req = [['fUser',user],['fProject',project],['fPool',pool],['fPoolAccountNumber',poolAcct],['fCustomerName',custName],['fSortCode',sc],['fAccountNumber',acct]];
+  req.forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if (!val) { el.classList.add('error'); valid = false; } else el.classList.remove('error');
+  });
+  const amtEl = document.getElementById('fAmount');
+  if (isNaN(amt) || amt <= 0) { amtEl.classList.add('error'); valid = false; } else amtEl.classList.remove('error');
+  if (!valid) { toast('Please fill in all required fields.', 'warning'); return; }
+
+  if (editingIdx === null) {
+    // Add new
+    records.push({
+      index: nextIndex(),
+      timeAdded: nowISO(),
+      timeEdited: '',
+      user, pool, poolAccountNumber: poolAcct, customerName: custName, sortCode: sc, accountNumber: acct, amount: amt, project, sent: false
+    });
+    toast('Request added ✓', 'success');
+  } else {
+    // Edit
+    const r = records.find(x => x.index === editingIdx);
+    if (r) {
+      r.user = user; r.pool = pool; r.poolAccountNumber = poolAcct;
+      r.customerName = custName; r.sortCode = sc; r.accountNumber = acct;
+      r.amount = amt; r.project = project; r.timeEdited = nowISO();
+    }
+    toast('Request updated ✓', 'success');
+  }
+
+  closeModal('recordModal');
+  markUnsaved();
+  updateStats();
+  applyFilters();
+  saveFile();
+}
+
+// ── Record actions ────────────────────────────────────
+function markSent(idx) {
+  const r = records.find(x => x.index === idx);
+  if (r) { r.sent = true; r.timeEdited = nowISO(); }
+  markUnsaved(); updateStats(); applyFilters(); saveFile();
+  toast('Marked as Sent ✓', 'success');
+}
+
+function markUnsent(idx) {
+  const r = records.find(x => x.index === idx);
+  if (r) { r.sent = false; r.timeEdited = nowISO(); }
+  markUnsaved(); updateStats(); applyFilters(); saveFile();
+  toast('Marked as Pending ↩️');
+}
+
+function deleteRecord(idx) {
+  const r = records.find(x => x.index === idx);
+  if (!r) return;
+  const msg = document.getElementById('confirmMessage');
+  msg.textContent = `Delete request #${idx} for £${r.amount.toFixed(2)} (${r.user} / ${r.project})?`;
+  document.getElementById('confirmOkBtn').onclick = () => {
+    records = records.filter(x => x.index !== idx);
+    closeModal('confirmModal');
+    markUnsaved(); updateStats(); applyFilters(); saveFile();
+    toast('Record deleted', 'warning');
+  };
+  document.getElementById('confirmModal').classList.add('open');
+}
+
+// ── Export ────────────────────────────────────────────
+function openExportModal() {
+  document.getElementById('exportModal').classList.add('open');
+}
+
+function doExport() {
+  const type = document.querySelector('input[name=exportType]:checked').value;
+  let toExport;
+  if (type === 'all')      toExport = [...records];
+  else if (type === 'unsent') toExport = records.filter(r => !r.sent);
+  else                     toExport = [...filteredRecords];
+
+  if (!toExport.length) { toast('No records to export.', 'warning'); return; }
+
+  const csv  = recordsToCsv(toExport);
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const ts   = new Date().toISOString().replace(/[:.]/g,'-').substring(0,16);
+  a.href = url; a.download = `EFT_Export_${ts}.csv`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+
+  // Optionally mark as sent
+  if (document.getElementById('markSentAfterExport').checked) {
+    const unsentIds = toExport.filter(r => !r.sent).map(r => r.index);
+    if (unsentIds.length) {
+      records.forEach(r => { if (unsentIds.includes(r.index)) { r.sent = true; r.timeEdited = nowISO(); } });
+      markUnsaved(); updateStats(); applyFilters(); saveFile();
+    }
+  }
+
+  closeModal('exportModal');
+  toast(`Exported ${toExport.length} record${toExport.length!==1?'s':''} ✓`, 'success');
+}
+
+// ── Toast ─────────────────────────────────────────────
+let toastTimer;
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = '', 2800);
+}
+
+// ── Keyboard shortcuts ────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-backdrop.open').forEach(m => m.classList.remove('open'));
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    if (fileHandle) saveFile();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+    e.preventDefault();
+    if (document.getElementById('app').style.display !== 'none') openAddModal();
+  }
+});
+
+// ── Click outside modal to close ─────────────────────
+document.querySelectorAll('.modal-backdrop').forEach(bd => {
+  bd.addEventListener('click', e => { if (e.target === bd) bd.classList.remove('open'); });
+});
+
+// ── Sort code auto-format ─────────────────────────────
+document.getElementById('fSortCode').addEventListener('input', function() {
+  let v = this.value.replace(/[^0-9]/g,'');
+  if (v.length > 2) v = v.slice(0,2) + '-' + v.slice(2);
+  if (v.length > 5) v = v.slice(0,5) + '-' + v.slice(5,7);
+  this.value = v;
+});
+// ── Tab switching ─────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', ['requests','statistics'][i] === name);
+  });
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'statistics') renderStats();
+}
+
+// ── Statistics rendering ──────────────────────────────
+let chartTimeInstance = null;
+let chartAmountInstance = null;
+
+function statsData() {
+  const unsentOnly = document.getElementById('statsToggle').checked;
+  document.getElementById('statsToggleLabel').textContent = unsentOnly ? 'Showing unsent only' : 'Showing all records';
+  return unsentOnly ? records.filter(r => !r.sent) : records;
+}
+
+function fmt(n) {
+  return '£' + n.toLocaleString('en-GB', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function groupBy(data, key) {
+  const map = {};
+  for (const r of data) {
+    const k = r[key] || '(blank)';
+    if (!map[k]) map[k] = { count:0, total:0, sent:0, unsent:0 };
+    map[k].count++;
+    map[k].total += r.amount || 0;
+    if (r.sent) map[k].sent++; else map[k].unsent++;
+  }
+  return Object.entries(map).sort((a,b) => b[1].total - a[1].total);
+}
+
+function renderGroupTable(tableId, data, key) {
+  const el = document.getElementById(tableId);
+  const groups = groupBy(data, key);
+  if (!groups.length) { el.innerHTML = '<tr><td class="no-data" colspan="4">No data yet</td></tr>'; return; }
+  const maxTotal = groups[0][1].total || 1;
+  el.innerHTML = `
+    <tr>
+      <th>${key === 'user' ? 'User' : key === 'project' ? 'Project' : 'Pool'}</th>
+      <th style="text-align:right">Requests</th>
+      <th style="text-align:right">Value</th>
+      <th style="text-align:right">Status</th>
+    </tr>
+    ${groups.map(([name, g]) => `
+      <tr>
+        <td class="name">
+          ${esc(name)}
+          <span class="bar-inline" style="width:${Math.round((g.total/maxTotal)*80)}px"></span>
+        </td>
+        <td class="num">${g.count}</td>
+        <td class="num">${fmt(g.total)}</td>
+        <td style="text-align:right; white-space:nowrap">
+          <span class="pill-sent">${g.sent} sent</span>
+          <span class="pill-unsent">${g.unsent} pending</span>
+        </td>
+      </tr>`).join('')}
+  `;
+}
+
+function renderTimeChart(data) {
+  const canvas = document.getElementById('chartTime');
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth || 600;
+  canvas.height = 200;
+
+  // Group by YYYY-MM
+  const map = {};
+  for (const r of data) {
+    if (!r.timeAdded) continue;
+    const key = r.timeAdded.substring(0,7);
+    if (!map[key]) map[key] = { count:0, value:0 };
+    map[key].count++;
+    map[key].value += r.amount || 0;
+  }
+  const labels = Object.keys(map).sort();
+  const counts = labels.map(l => map[l].count);
+  const values = labels.map(l => map[l].value);
+
+  if (!labels.length) {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '14px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('No data yet', canvas.width/2, canvas.height/2);
+    return;
+  }
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const pad = { top:20, right:20, bottom:40, left:60 };
+  const W = canvas.width - pad.left - pad.right;
+  const H = canvas.height - pad.top - pad.bottom;
+  const maxVal = Math.max(...values, 1);
+  const barW = Math.min(W / labels.length * 0.6, 40);
+  const step = W / labels.length;
+
+  // Grid lines
+  ctx.strokeStyle = '#e2e2e6'; ctx.lineWidth = 1;
+  for (let i=0;i<=4;i++) {
+    const y = pad.top + H - (i/4)*H;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left+W, y); ctx.stroke();
+    ctx.fillStyle = '#94a3b8'; ctx.font = '10px Inter, sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(fmt(maxVal*i/4), pad.left - 4, y + 3);
+  }
+
+  // Bars
+  labels.forEach((lbl, i) => {
+    const x = pad.left + i * step + step/2 - barW/2;
+    const barH = (values[i]/maxVal) * H;
+    const y = pad.top + H - barH;
+    // Bar
+    ctx.fillStyle = '#e8003d';
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(x, y, barW, barH, [3,3,0,0]) : ctx.rect(x, y, barW, barH);
+    ctx.fill();
+    // Count label above bar
+    ctx.fillStyle = '#1a1a2e'; ctx.font = 'bold 11px Inter, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(values[i] > 0 ? counts[i] : '', x + barW/2, y - 5);
+    // X label
+    ctx.fillStyle = '#64748b'; ctx.font = '10px Inter, sans-serif';
+    ctx.fillText(lbl, x + barW/2, pad.top + H + 14);
+  });
+}
+
+function renderAmountChart(data) {
+  const canvas = document.getElementById('chartAmount');
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth || 300;
+  canvas.height = 180;
+
+  // Bands
+  const bands = [
+    { label:'< £500',      min:0,    max:500   },
+    { label:'£500–£1k',   min:500,  max:1000  },
+    { label:'£1k–£5k',   min:1000, max:5000  },
+    { label:'£5k–£10k',  min:5000, max:10000 },
+    { label:'> £10k',     min:10000,max:Infinity }
+  ];
+  const counts = bands.map(b => data.filter(r => r.amount >= b.min && r.amount < b.max).length);
+  const maxC = Math.max(...counts, 1);
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if (!data.length) {
+    ctx.fillStyle = '#94a3b8'; ctx.font = '14px Inter, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('No data yet', canvas.width/2, canvas.height/2); return;
+  }
+
+  const pad = { top:10, right:10, bottom:30, left:10 };
+  const W = canvas.width - pad.left - pad.right;
+  const H = canvas.height - pad.top - pad.bottom;
+  const barW = W / bands.length * 0.65;
+  const step = W / bands.length;
+  const colors = ['#e8003d','#ff3366','#ff6688','#ffaabb','#ffd0d8'];
+
+  counts.forEach((c, i) => {
+    const x = pad.left + i*step + step/2 - barW/2;
+    const barH = (c/maxC)*H;
+    const y = pad.top + H - barH;
+    ctx.fillStyle = colors[i];
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(x, y, barW, barH, [3,3,0,0]) : ctx.rect(x, y, barW, barH);
+    ctx.fill();
+    // count
+    if (c > 0) {
+      ctx.fillStyle = '#1a1a2e'; ctx.font = 'bold 11px Inter, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(c, x + barW/2, y - 4);
+    }
+    // label
+    ctx.fillStyle = '#64748b'; ctx.font = '9px Inter, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(bands[i].label, x + barW/2, pad.top + H + 14);
+  });
+
+  // Summary text
+  const total = data.reduce((s,r) => s + (r.amount||0), 0);
+  const avg   = data.length ? total/data.length : 0;
+  const max   = data.length ? Math.max(...data.map(r=>r.amount||0)) : 0;
+  const min   = data.length ? Math.min(...data.map(r=>r.amount||0)) : 0;
+  document.getElementById('statsAmountSummary').innerHTML =
+    `<b>Total:</b> ${fmt(total)} &nbsp;|&nbsp; <b>Average:</b> ${fmt(avg)} &nbsp;|&nbsp; <b>Min:</b> ${fmt(min)} &nbsp;|&nbsp; <b>Max:</b> ${fmt(max)}`;
+}
+
+function renderStats() {
+  const data = statsData();
+  renderGroupTable('statsProjectTable', data, 'project');
+  renderGroupTable('statsUserTable',    data, 'user');
+  renderGroupTable('statsPoolTable',    data, 'pool');
+  // Charts render after paint so canvas has dimensions
+  requestAnimationFrame(() => {
+    renderTimeChart(data);
+    renderAmountChart(data);
+  });
+}
+</script>
+</body>
+</html>
