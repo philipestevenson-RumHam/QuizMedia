@@ -852,7 +852,7 @@ let filteredRecords = [];
 let unsaved    = false;
 let lastKnownModified = 0; // timestamp of file when last read
 
-const COLS = ['Index','Time Added','Time Edited','User','Pool','Pool Account Number','Customer Name','Customer Sort Code','Customer Bank Account','Amount','Project','Status','Checker Name','Time Checked','Completer Name','Time Completed','Outcome'];
+const COLS = ['Index','Time Added','Time Edited','User','Pool','Pool Account Number','Customer Name','Customer Sort Code','Customer Bank Account','Amount','Project','Status','Checker Name','Time Checked','Completer Name','Time Completed','Outcome','Time Sent'];
 
 // ── CSV helpers ───────────────────────────────────────
 function csvEscape(v) {
@@ -862,8 +862,10 @@ function csvEscape(v) {
 }
 
 // Strip the ="..." Excel text-force wrapper when reading values back in
+// After CSV parsing the outer quotes are consumed, so ="val" becomes =val — handle both forms
 function stripExcelText(s) {
   if (s.startsWith('="') && s.endsWith('"')) return s.slice(2, -1).replace(/""/g, '"');
+  if (s.startsWith('=')) return s.slice(1);   // post-parse form: = was left, quotes already stripped
   return s;
 }
 
@@ -895,7 +897,8 @@ function recordsToCsv(recs) {
       csvEscape(r.timeChecked || ''),
       csvEscape(r.completerName || ''),
       csvEscape(r.timeCompleted || ''),
-      csvEscape(r.outcome || '')
+      csvEscape(r.outcome || ''),
+      csvEscape(r.timeSent || '')
     ].join(','));
   }
   return rows.join('\r\n');
@@ -949,7 +952,8 @@ function csvToRecords(text) {
       timeChecked:       f[13] || '',
       completerName:     f[14] || '',
       timeCompleted:     f[15] || '',
-      outcome:           f[16] || ''
+      outcome:           f[16] || '',
+      timeSent:          f[17] || ''
     });
   }
   return out;
@@ -1345,7 +1349,7 @@ function saveRecord() {
       timeEdited: '',
       user, pool, poolAccountNumber: poolAcct, customerName: custName, sortCode: sc, accountNumber: acct, amount: amt, project,
       status: 'pending',
-      checkerName: '', timeChecked: '', completerName: '', timeCompleted: '', outcome: ''
+      checkerName: '', timeChecked: '', completerName: '', timeCompleted: '', outcome: '', timeSent: ''
     });
     toast('Request added ✓', 'success');
   } else {
@@ -1400,6 +1404,7 @@ function confirmCheck() {
     r.status      = 'checked';
     r.checkerName = name;
     r.timeChecked = nowISO();
+    // NOTE: timeEdited is intentionally NOT set here — checking is not an edit
   }
   closeModal('checkModal');
   markUnsaved(); updateStats(); applyFilters(); autoSave();
@@ -1444,7 +1449,7 @@ function confirmComplete() {
     r.completerName = name;
     r.timeCompleted = nowISO();
     r.outcome       = outcome;
-    r.timeEdited    = nowISO();
+    // NOTE: timeEdited is intentionally NOT set here — completing/failing is not an edit
   }
   closeModal('completeModal');
   markUnsaved(); updateStats(); applyFilters(); autoSave();
@@ -1492,8 +1497,13 @@ function doExport() {
   if (document.getElementById('markSentAfterExport').checked) {
     const checkedIds = toExport.filter(r => r.status === 'checked').map(r => r.index);
     if (checkedIds.length) {
+      const exportTimestamp = nowISO();
       records.forEach(r => {
-        if (checkedIds.includes(r.index)) { r.status = 'sent'; r.timeEdited = nowISO(); }
+        if (checkedIds.includes(r.index)) {
+          r.status = 'sent';
+          r.timeSent = exportTimestamp;
+          // NOTE: timeEdited is intentionally NOT set here — status changes are not edits
+        }
       });
       markUnsaved(); updateStats(); applyFilters(); autoSave();
     }
@@ -1571,6 +1581,16 @@ function openDetailModal(idx) {
       <div class="detail-grid">
         <div class="detail-field"><label>Checked By</label><span>${esc(r.checkerName || '—')}</span></div>
         <div class="detail-field"><label>Time Checked</label><span>${fmtDt(r.timeChecked) || '—'}</span></div>
+      </div>
+    </div>`;
+  }
+
+  if (r.timeSent) {
+    html += `
+    <div class="detail-section">
+      <div class="detail-section-title">📤 Sent Details</div>
+      <div class="detail-grid">
+        <div class="detail-field full"><label>Time Sent (Export)</label><span>${fmtDt(r.timeSent)}</span></div>
       </div>
     </div>`;
   }
@@ -1666,9 +1686,11 @@ function statsData() {
     if (!checkedStatuses.includes(r.status)) return false;
     if (project !== 'all' && r.project !== project) return false;
     if (dateFrom || dateTo) {
-      const added = r.timeAdded ? r.timeAdded.substring(0, 10) : '';
-      if (dateFrom && added < dateFrom) return false;
-      if (dateTo   && added > dateTo)   return false;
+      // Extract date part robustly — strip any leading = artefacts, take first 10 chars (YYYY-MM-DD)
+      const rawAdded = r.timeAdded ? r.timeAdded.replace(/^=/, '').trim() : '';
+      const added    = rawAdded.substring(0, 10);
+      if (dateFrom && (!added || added < dateFrom)) return false;
+      if (dateTo   && (!added || added > dateTo))   return false;
     }
     return true;
   });
