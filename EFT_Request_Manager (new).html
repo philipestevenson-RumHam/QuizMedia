@@ -23,6 +23,7 @@
     --sent-text:   #166534;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
   body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
 
   /* ── Header ── */
@@ -80,7 +81,7 @@
   .landing-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 
   /* ── App shell ── */
-  #app { display: none; padding: 20px 24px; }
+  #app { display: none; padding: 20px 24px; height: calc(100vh - 64px); overflow-y: auto; box-sizing: border-box; }
 
   /* ── Stats bar ── */
   .stats { display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
@@ -115,12 +116,13 @@
   .toolbar-spacer { flex: 1; }
 
   /* ── Table ── */
-  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: auto; }
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: auto; max-height: calc(100vh - 420px); }
   table { width: 100%; border-collapse: collapse; min-width: 900px; }
   thead th {
     background: var(--brand); color: #fff; padding: 10px 12px;
     text-align: left; font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
     white-space: nowrap; user-select: none; cursor: pointer;
+    position: sticky; top: 0; z-index: 2;
   }
   thead th:hover { background: var(--brand-dark); }
   thead th.sorted-asc::after  { content: ' ▲'; font-size: .65rem; }
@@ -953,7 +955,10 @@ function nextIndex() {
 }
 
 function nowISO() {
-  return new Date().toISOString().replace('T', ' ').substring(0, 19);
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + ' ' +
+         pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
 }
 
 function markUnsaved() {
@@ -1155,7 +1160,7 @@ function applyFilters() {
   // Sort
   filteredRecords.sort((a, b) => {
     let va = a[sortCol], vb = b[sortCol];
-    if (sortCol === 'amount') { va = parseFloat(va)||0; vb = parseFloat(vb)||0; }
+    if (sortCol === 'amount' || sortCol === 'index') { va = parseFloat(va)||0; vb = parseFloat(vb)||0; }
     else { va = String(va||'').toLowerCase(); vb = String(vb||'').toLowerCase(); }
     if (va < vb) return sortAsc ? -1 : 1;
     if (va > vb) return sortAsc ?  1 : -1;
@@ -1218,7 +1223,8 @@ function actionButtons(r) {
     return edit + `<button class="btn-icon btn-sm" title="Check" onclick="openCheckModal(${r.index})" style="color:#1e40af">✅</button>` + del;
   }
   if (r.status === 'checked') {
-    return edit + `<button class="btn-icon btn-sm" title="Already checked by ${esc(r.checkerName||'?')}" disabled style="opacity:.35">✅</button>` + del;
+    const disabledEdit = `<button class="btn-icon btn-sm" title="Cannot edit after checking" disabled style="opacity:.35">✏️</button>`;
+    return disabledEdit + `<button class="btn-icon btn-sm" title="Already checked by ${esc(r.checkerName||'?')}" disabled style="opacity:.35">✅</button>` + del;
   }
   if (r.status === 'sent') {
     return `<button class="btn-icon btn-sm" title="Complete or Fail" onclick="openCompleteModal(${r.index})" style="color:#166534">✔</button>` + del;
@@ -1236,7 +1242,7 @@ function renderTable() {
   }
   tbody.innerHTML = filteredRecords.map(r => `
     <tr ${rowClass(r)}>
-      <td class="idx">${r.index}</td>
+      <td class="idx">${String(r.index).padStart(6,'0')}</td>
       <td>${fmtDt(r.timeAdded)}</td>
       <td>${fmtDt(r.timeEdited) || '—'}</td>
       <td>${esc(r.user)}</td>
@@ -1388,7 +1394,6 @@ function confirmCheck() {
     r.status      = 'checked';
     r.checkerName = name;
     r.timeChecked = nowISO();
-    r.timeEdited  = nowISO();
   }
   closeModal('checkModal');
   markUnsaved(); updateStats(); applyFilters(); autoSave();
