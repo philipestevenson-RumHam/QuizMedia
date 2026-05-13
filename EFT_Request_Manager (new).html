@@ -861,12 +861,18 @@ function csvEscape(v) {
   return s;
 }
 
+// Strip the ="..." Excel text-force wrapper when reading values back in
+function stripExcelText(s) {
+  if (s.startsWith('="') && s.endsWith('"')) return s.slice(2, -1).replace(/""/g, '"');
+  return s;
+}
+
 // Force Excel/Sheets to treat a value as text (prevents date/number coercion)
+// ="value" syntax stops Excel converting things like 12-34-56 into dates
 function csvText(v) {
   const s = String(v === null || v === undefined ? '' : v);
   if (!s) return '';
-  // Wrap in quotes and prefix with tab to force text interpretation
-  return '"' + s.replace(/"/g, '""') + '"';
+  return '="' + s.replace(/"/g, '""') + '"';
 }
 
 function recordsToCsv(recs) {
@@ -932,10 +938,10 @@ function csvToRecords(text) {
       timeEdited:        f[2] || '',
       user:              f[3] || '',
       pool:              f[4] || '',
-      poolAccountNumber: f[5] || '',
+      poolAccountNumber: stripExcelText(f[5] || ''),
       customerName:      f[6] || '',
-      sortCode:          f[7] || '',
-      accountNumber:     f[8] || '',
+      sortCode:          stripExcelText(f[7] || ''),
+      accountNumber:     stripExcelText(f[8] || ''),
       amount:            parseFloat(f[9]) || 0,
       project:           f[10] || '',
       status,
