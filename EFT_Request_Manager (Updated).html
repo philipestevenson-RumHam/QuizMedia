@@ -1005,6 +1005,7 @@ async function openFile() {
     document.getElementById('saveBtn').disabled = fileHandle === null;
     showApp();
     applyFilters();
+    startBackgroundSync();
     toast('Opened: ' + file.name, 'success');
   } catch (e) {
     if (e.name !== 'AbortError') toast('Could not open file: ' + e.message, 'error');
@@ -1027,6 +1028,7 @@ async function newFile() {
     document.getElementById('saveBtn').disabled = false;
     showApp();
     applyFilters();
+    startBackgroundSync();
     await doSave(true);
     toast('New file created: ' + file.name, 'success');
   } catch (e) {
@@ -1053,6 +1055,12 @@ async function autoSave() {
 }
 
 // ── Core save logic ───────────────────────────────────
+// ── Helper: latest activity timestamp on a record (for merge conflict resolution) ──
+function latestTimestamp(r) {
+  return [r.timeAdded, r.timeEdited, r.timeChecked, r.timeCompleted, r.timeSent]
+    .filter(Boolean).sort().pop() || '';
+}
+
 async function doSave(silent = false) {
   if (!fileHandle) {
     if (!window.showSaveFilePicker) { showInfo('Browser not supported', 'Please use Chrome or Edge to save files.', 'error'); return; }
@@ -1079,8 +1087,52 @@ async function doSave(silent = false) {
       const ourMap = {};
       records.forEach(r => ourMap[r.index] = r);
       for (const dr of diskRecords) {
-        if (!ourMap[dr.index]) { records.push(dr); mergeCount++; }
+        if (!ourMap[dr.index]) {
+          // Completely new record on disk — add it
+          records.push(dr);
+          mergeCount++;
+        } else {
+          // Record exists in both — merge if disk version has newer activity
+          const or = ourMap[dr.index];
+          const diskLatest = latestTimestamp(dr);
+          const ourLatest  = latestTimestamp(or);
+          if (diskLatest > ourLatest) {
+            // Disk copy has more recent status activity — take its mutable status fields
+            or.status        = dr.status;
+            or.checkerName   = dr.checkerName;
+            or.timeChecked   = dr.timeChecked;
+            or.completerName = dr.completerName;
+            or.timeCompleted = dr.timeCompleted;
+            or.outcome       = dr.outcome;
+            or.timeSent      = dr.timeSent;
+            // Also take edit fields if disk was edited more recently
+            if ((dr.timeEdited || '') > (or.timeEdited || '')) {
+              or.user              = dr.user;
+              or.pool              = dr.pool;
+              or.poolAccountNumber = dr.poolAccountNumber;
+              or.customerName      = dr.customerName;
+              or.sortCode          = dr.sortCode;
+              or.accountNumber     = dr.accountNumber;
+              or.amount            = dr.amount;
+              or.project           = dr.project;
+              or.timeEdited        = dr.timeEdited;
+            }
+            mergeCount++;
+          }
+        }
       }
+      // Remove records deleted by another user:
+      // if a record is in memory but absent from disk AND its timeAdded predates
+      // our last known disk state, another user intentionally deleted it.
+      const diskIndexSet = new Set(diskRecords.map(dr => dr.index));
+      const beforeLen = records.length;
+      records = records.filter(r =>
+        diskIndexSet.has(r.index) ||
+        new Date(r.timeAdded).getTime() > lastKnownModified
+      );
+      const deletedCount = beforeLen - records.length;
+      if (deletedCount > 0) mergeCount += deletedCount;
+
       records.sort((a, b) => a.index - b.index);
     }
 
@@ -1097,13 +1149,88 @@ async function doSave(silent = false) {
 
     if (mergeCount > 0) {
       updateStats(); applyFilters();
-      toast(`Saved ✓ — merged ${mergeCount} new record${mergeCount !== 1 ? 's' : ''} added by others`, 'warning');
+      toast(`Saved ✓ — merged ${mergeCount} change${mergeCount !== 1 ? 's' : ''} from other users`, 'warning');
     } else if (!silent) {
       toast('Saved ✓', 'success');
     }
   } catch (e) {
     toast('Save failed: ' + e.message, 'error');
   }
+}
+
+// ── Background sync — re-reads the file every 15s while it's open ──────────
+// This lets users see each other's changes without needing to save first.
+let _bgSyncTimer = null;
+
+function startBackgroundSync() {
+  if (_bgSyncTimer) return;
+  _bgSyncTimer = setInterval(async () => {
+    if (!fileHandle) return;
+    try {
+      const f = await fileHandle.getFile();
+      if (f.lastModified <= lastKnownModified) return; // nothing new on disk
+      const diskText = await f.text();
+      const diskRecords = csvToRecords(diskText);
+      const ourMap = {};
+      records.forEach(r => ourMap[r.index] = r);
+      let changed = 0;
+      for (const dr of diskRecords) {
+        if (!ourMap[dr.index]) {
+          records.push(dr);
+          changed++;
+        } else {
+          const or = ourMap[dr.index];
+          const diskLatest = latestTimestamp(dr);
+          const ourLatest  = latestTimestamp(or);
+          if (diskLatest > ourLatest) {
+            or.status        = dr.status;
+            or.checkerName   = dr.checkerName;
+            or.timeChecked   = dr.timeChecked;
+            or.completerName = dr.completerName;
+            or.timeCompleted = dr.timeCompleted;
+            or.outcome       = dr.outcome;
+            or.timeSent      = dr.timeSent;
+            if ((dr.timeEdited || '') > (or.timeEdited || '')) {
+              or.user              = dr.user;
+              or.pool              = dr.pool;
+              or.poolAccountNumber = dr.poolAccountNumber;
+              or.customerName      = dr.customerName;
+              or.sortCode          = dr.sortCode;
+              or.accountNumber     = dr.accountNumber;
+              or.amount            = dr.amount;
+              or.project           = dr.project;
+              or.timeEdited        = dr.timeEdited;
+            }
+            changed++;
+          }
+        }
+      }
+      // Remove records deleted by another user (same logic as doSave merge)
+      const bgDiskSet = new Set(diskRecords.map(dr => dr.index));
+      const bgBefore  = records.length;
+      records = records.filter(r =>
+        bgDiskSet.has(r.index) ||
+        new Date(r.timeAdded).getTime() > lastKnownModified
+      );
+      changed += bgBefore - records.length;
+
+      if (changed > 0) {
+        records.sort((a, b) => a.index - b.index);
+        lastKnownModified = f.lastModified;
+        updateStats();
+        applyFilters();
+        toast(`↻ ${changed} update${changed !== 1 ? 's' : ''} synced from other users`, 'info');
+      } else {
+        // File changed but no record differences (e.g. just whitespace) — update marker
+        lastKnownModified = f.lastModified;
+      }
+    } catch (_) { /* silent — background, don't disturb the user */ }
+  }, 15000);
+}
+
+function stopBackgroundSync() {
+  clearInterval(_bgSyncTimer);
+  _bgSyncTimer = null;
 }
 
 // ── UI state ──────────────────────────────────────────
@@ -1320,7 +1447,7 @@ function closeModal(id) {
   document.getElementById(id).classList.remove('open');
 }
 
-function saveRecord() {
+async function saveRecord() {
   // Validate
   const user    = document.getElementById('fUser').value.trim();
   const project = document.getElementById('fProject').value.trim();
@@ -1342,9 +1469,24 @@ function saveRecord() {
   if (!valid) { showInfo('Required fields missing', 'Please fill in all required fields before saving.', 'warning'); return; }
 
   if (editingIdx === null) {
-    // Add new
+    // Add new — read disk first to get the true max index (prevents collision if
+    // another user added a record since we last loaded/synced the file)
+    let safeIndex;
+    if (fileHandle) {
+      try {
+        const freshFile = await fileHandle.getFile();
+        const freshRecords = csvToRecords(await freshFile.text());
+        const diskMax = freshRecords.length ? Math.max(...freshRecords.map(r => r.index)) : 0;
+        const memMax  = records.length       ? Math.max(...records.map(r => r.index))      : 0;
+        safeIndex = Math.max(diskMax, memMax) + 1;
+      } catch (_) {
+        safeIndex = nextIndex(); // fallback if file read fails
+      }
+    } else {
+      safeIndex = nextIndex();
+    }
     records.push({
-      index: nextIndex(),
+      index: safeIndex,
       timeAdded: nowISO(),
       timeEdited: '',
       user, pool, poolAccountNumber: poolAcct, customerName: custName, sortCode: sc, accountNumber: acct, amount: amt, project,

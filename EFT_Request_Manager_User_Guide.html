@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EFT Request Manager – User Guide | Pepper Money</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+  :root {
+    --brand:      #e8003d;
+    --brand-dark: #b5002f;
+    --text:       #1a1a2e;
+    --muted:      #6b6b80;
+    --border:     #e2e2e6;
+    --bg:         #f7f7f8;
+    --surface:    #ffffff;
+    --success:    #16a34a;
+    --warning:    #d97706;
+    --info:       #1e40af;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  /* ── TOP BAR ── */
+  .top-bar {
+    background: #fff;
+    border-bottom: 3px solid var(--brand);
+    padding: 0 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 64px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(0,0,0,.08);
+  }
+  .logo {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    text-decoration: none;
+  }
+  .logo .pepper { color: var(--brand); }
+  .logo .dot    { color: var(--brand); font-size: 2rem; vertical-align: middle; line-height: .5; margin: 0 1px; }
+  .logo .money  { color: var(--text); }
+  .top-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .doc-label {
+    font-size: .78rem;
+    color: var(--muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+  }
+  .btn-pdf {
+    background: var(--brand);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 20px;
+    font-size: .85rem;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: .02em;
+    transition: background .15s, transform .1s;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .btn-pdf:hover { background: var(--brand-dark); }
+  .btn-pdf:active { transform: scale(.97); }
+
+  /* ── LAYOUT ── */
+  .layout {
+    display: flex;
+    max-width: 1280px;
+    margin: 0 auto;
+    gap: 0;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 280px;
+    flex-shrink: 0;
+    padding: 32px 24px;
+    position: sticky;
+    top: 64px;
+    height: calc(100vh - 64px);
+    overflow-y: auto;
+    border-right: 1px solid var(--border);
+    background: #fff;
+  }
+  .sidebar h2 {
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--muted);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar ul { list-style: none; padding: 0; }
+  .sidebar ul li { margin-bottom: 2px; }
+  .sidebar ul li a {
+    display: block;
+    padding: 6px 10px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: .82rem;
+    color: var(--muted);
+    font-weight: 500;
+    transition: background .1s, color .1s;
+  }
+  .sidebar ul li a:hover,
+  .sidebar ul li a.active {
+    background: #fff0f3;
+    color: var(--brand);
+  }
+  .sidebar ul li.sub a {
+    padding-left: 20px;
+    font-size: .79rem;
+  }
+
+  /* ── CONTENT ── */
+  .content {
+    flex: 1;
+    padding: 48px 56px;
+    min-width: 0;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    background: linear-gradient(135deg, var(--brand) 0%, #b5002f 100%);
+    border-radius: 16px;
+    padding: 48px 48px 44px;
+    color: #fff;
+    margin-bottom: 48px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    right: -40px; top: -40px;
+    width: 280px; height: 280px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.07);
+  }
+  .hero-tag {
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    background: rgba(255,255,255,.2);
+    border-radius: 99px;
+    padding: 3px 12px;
+    display: inline-block;
+    margin-bottom: 16px;
+  }
+  .hero h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    line-height: 1.2;
+    margin-bottom: 12px;
+  }
+  .hero p {
+    font-size: 1rem;
+    opacity: .88;
+    max-width: 520px;
+    line-height: 1.6;
+  }
+  .hero-meta {
+    margin-top: 24px;
+    display: flex;
+    gap: 24px;
+    font-size: .8rem;
+    opacity: .75;
+    flex-wrap: wrap;
+  }
+  .hero-meta span { display: flex; align-items: center; gap: 5px; }
+
+  /* ── SECTIONS ── */
+  section {
+    margin-bottom: 52px;
+  }
+  section h2 {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 6px;
+    letter-spacing: -.01em;
+    padding-bottom: 10px;
+    border-bottom: 3px solid var(--brand);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  section h2 .icon {
+    background: var(--brand);
+    color: #fff;
+    width: 30px; height: 30px;
+    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .85rem;
+    flex-shrink: 0;
+  }
+  section h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin: 24px 0 10px;
+    letter-spacing: -.01em;
+  }
+  section p { margin-bottom: 12px; color: var(--text); }
+  section ul, section ol { padding-left: 22px; margin-bottom: 12px; }
+  section li { margin-bottom: 6px; }
+  section strong { color: var(--text); }
+
+  /* ── CALLOUTS ── */
+  .callout {
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    font-size: .9rem;
+    line-height: 1.6;
+  }
+  .callout .icon-box {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .callout.info    { background: #eff6ff; border-left: 4px solid var(--info); }
+  .callout.warning { background: #fffbeb; border-left: 4px solid var(--warning); }
+  .callout.success { background: #f0fdf4; border-left: 4px solid var(--success); }
+  .callout.danger  { background: #fef2f2; border-left: 4px solid #dc2626; }
+  .callout.tip     { background: #fdf4ff; border-left: 4px solid #7c3aed; }
+
+  /* ── STEPS ── */
+  .steps { counter-reset: step; padding: 0; list-style: none; }
+  .steps li {
+    counter-increment: step;
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+    align-items: flex-start;
+  }
+  .steps li::before {
+    content: counter(step);
+    background: var(--brand);
+    color: #fff;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .8rem;
+    font-weight: 800;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .step-content { flex: 1; }
+  .step-content strong { display: block; margin-bottom: 3px; font-size: .95rem; }
+  .step-content p { font-size: .9rem; color: var(--muted); margin: 0; }
+
+  /* ── FIELD TABLE ── */
+  .field-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: .88rem;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .field-table thead th {
+    background: var(--brand);
+    color: #fff;
+    padding: 10px 14px;
+    text-align: left;
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    font-weight: 700;
+  }
+  .field-table tbody tr { border-bottom: 1px solid var(--border); }
+  .field-table tbody tr:last-child { border-bottom: none; }
+  .field-table tbody tr:nth-child(even) { background: var(--bg); }
+  .field-table td { padding: 10px 14px; vertical-align: top; }
+  .field-table td:first-child { font-weight: 700; color: var(--brand); white-space: nowrap; }
+  .req-badge {
+    display: inline-block;
+    background: #fee2e2;
+    color: #991b1b;
+    font-size: .68rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-left: 4px;
+    vertical-align: middle;
+    text-transform: uppercase;
+  }
+
+  /* ── STATUS PILLS ── */
+  .status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .status-card {
+    border-radius: 10px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .status-card .label {
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+  }
+  .status-card .desc { font-size: .82rem; color: var(--muted); line-height: 1.5; }
+  .s-pending   { background: #fef9c3; border-color: #fcd34d; }
+  .s-pending   .label { color: #854d0e; }
+  .s-checked   { background: #dbeafe; border-color: #93c5fd; }
+  .s-checked   .label { color: #1e40af; }
+  .s-sent      { background: #dcfce7; border-color: #86efac; }
+  .s-sent      .label { color: #166534; }
+  .s-completed { background: #f0fdf4; border-color: #bbf7d0; }
+  .s-completed .label { color: #14532d; }
+  .s-failed    { background: #fef2f2; border-color: #fecaca; }
+  .s-failed    .label { color: #991b1b; }
+
+  /* ── WORKFLOW FLOW ── */
+  .workflow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+  }
+  .wf-node {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: .82rem;
+    font-weight: 700;
+    text-align: center;
+  }
+  .wf-arrow { color: var(--muted); font-size: 1.1rem; font-weight: 300; }
+  .wf-pending   { background: #fef9c3; color: #854d0e; border: 1.5px solid #fcd34d; }
+  .wf-checked   { background: #dbeafe; color: #1e40af; border: 1.5px solid #93c5fd; }
+  .wf-sent      { background: #dcfce7; color: #166534; border: 1.5px solid #86efac; }
+  .wf-completed { background: #f0fdf4; color: #14532d; border: 1.5px solid #bbf7d0; }
+  .wf-failed    { background: #fef2f2; color: #991b1b; border: 1.5px solid #fecaca; }
+
+  /* ── LIMITATION CARDS ── */
+  .limit-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+    margin: 16px 0;
+  }
+  .limit-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .limit-card h4 {
+    font-size: .88rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .limit-card p { font-size: .83rem; color: var(--muted); margin: 0; line-height: 1.6; }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 32px 56px;
+    margin-top: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: .8rem;
+    color: var(--muted);
+    background: #fff;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  footer .footer-logo { font-size: 1rem; font-weight: 800; }
+  footer .footer-logo .pepper { color: var(--brand); }
+  footer .footer-logo .dot    { color: var(--brand); }
+
+  /* ── PRINT / PDF ── */
+  @media print {
+    .top-bar, .sidebar, .btn-pdf { display: none !important; }
+    .layout { display: block; }
+    .content { padding: 20px 30px; }
+    body { background: #fff; font-size: 12px; }
+    section { page-break-inside: avoid; }
+    .hero { background: var(--brand) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── TOP BAR ── -->
+<div class="top-bar" id="topBar">
+  <a class="logo" href="#">
+    <span class="pepper">pepper</span><span class="dot">·</span><span class="money">money</span>
+  </a>
+  <div class="top-bar-right">
+    <span class="doc-label">User Guide</span>
+    <button class="btn-pdf" onclick="downloadPDF()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Download PDF
+    </button>
+  </div>
+</div>
+
+<div class="layout">
+
+  <!-- ── SIDEBAR ── -->
+  <nav class="sidebar" id="sidebar">
+    <h2>Contents</h2>
+    <ul>
+      <li><a href="#overview">1. Overview</a></li>
+      <li><a href="#getting-started">2. Getting Started</a></li>
+      <li class="sub"><a href="#browser-requirements">Browser Requirements</a></li>
+      <li class="sub"><a href="#open-new">Opening / Creating Files</a></li>
+      <li><a href="#interface">3. The Interface</a></li>
+      <li class="sub"><a href="#stats-bar">Stats Bar</a></li>
+      <li class="sub"><a href="#toolbar">Toolbar &amp; Table</a></li>
+      <li><a href="#adding">4. Adding a Request</a></li>
+      <li class="sub"><a href="#fields">Field Reference</a></li>
+      <li><a href="#workflow">5. The EFT Workflow</a></li>
+      <li class="sub"><a href="#pending">Pending</a></li>
+      <li class="sub"><a href="#checking">Checking</a></li>
+      <li class="sub"><a href="#sent">Marking as Sent</a></li>
+      <li class="sub"><a href="#completing">Completing / Failing</a></li>
+      <li><a href="#editing">6. Editing &amp; Deleting</a></li>
+      <li><a href="#search-filter">7. Search &amp; Filter</a></li>
+      <li><a href="#export">8. Exporting Data</a></li>
+      <li><a href="#saving">9. Saving &amp; Auto-Save</a></li>
+      <li><a href="#statistics">10. Statistics Dashboard</a></li>
+      <li><a href="#multi-user">11. Multi-User Collaboration</a></li>
+      <li><a href="#caveats">12. Caveats &amp; Limitations</a></li>
+      <li><a href="#tips">13. Tips &amp; Best Practices</a></li>
+    </ul>
+  </nav>
+
+  <!-- ── MAIN CONTENT ── -->
+  <main class="content" id="mainContent">
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-tag">Pepper Money — Internal Tooling</div>
+      <h1>EFT Request Manager<br>User Guide</h1>
+      <p>Everything you need to know about managing Electronic Fund Transfer requests — from creating your first entry through to final completion or failure.</p>
+      <div class="hero-meta">
+        <span>Version 1.0</span>
+        <span>May 2026</span>
+        <span>Pepper Money Operations</span>
+      </div>
+    </div>
+
+    <!-- 1. OVERVIEW -->
+    <section id="overview">
+      <h2><span class="icon">1</span> Overview</h2>
+      <p>The <strong>EFT Request Manager</strong> is a browser-based tool built by Pepper Money to manage the end-to-end lifecycle of Electronic Fund Transfer (EFT) requests. It runs entirely in your web browser — no installation, no server, no internet connection required after the page loads.</p>
+      <p>All data is stored in a plain CSV file on your local drive or network share, which means it can be accessed by multiple team members simultaneously and is easy to back up, archive, or open in Excel when needed.</p>
+
+      <h3>What it tracks</h3>
+      <ul>
+        <li>Who requested the transfer (User) and which project it belongs to</li>
+        <li>The originating pool account (our internal reference)</li>
+        <li>Customer bank details: name, sort code, and account number</li>
+        <li>Transfer amount in GBP (£)</li>
+        <li>Full audit trail: when added, edited, checked, sent, and completed</li>
+        <li>Who checked, sent, and completed each transfer</li>
+      </ul>
+
+      <h3>The five statuses</h3>
+      <div class="status-grid">
+        <div class="status-card s-pending">
+          <div class="label">Pending</div>
+          <div class="desc">Request has been entered. Awaiting review and check by a second person.</div>
+        </div>
+        <div class="status-card s-checked">
+          <div class="label">Checked</div>
+          <div class="desc">A second person has verified all details. Ready to be sent to the bank.</div>
+        </div>
+        <div class="status-card s-sent">
+          <div class="label">Sent</div>
+          <div class="desc">Export has been sent to the payment system. Awaiting outcome confirmation.</div>
+        </div>
+        <div class="status-card s-completed">
+          <div class="label">Completed</div>
+          <div class="desc">Transfer was processed successfully. Terminal state.</div>
+        </div>
+        <div class="status-card s-failed">
+          <div class="label">Failed</div>
+          <div class="desc">Transfer failed (e.g. rejected by bank). Terminal state. Requires investigation.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. GETTING STARTED -->
+    <section id="getting-started">
+      <h2><span class="icon">2</span> Getting Started</h2>
+
+      <h3 id="browser-requirements">Browser Requirements</h3>
+      <div class="callout warning">
+        <div class="icon-box">&#9888;</div>
+        <div>The EFT Request Manager requires <strong>Google Chrome</strong> or <strong>Microsoft Edge</strong> (version 86 or later). It will not work in Firefox, Safari, or Internet Explorer. This is because it uses the File System Access API to read and write CSV files directly on your computer.</div>
+      </div>
+      <p>To open the application, simply double-click the <code>EFT_Request_Manager.html</code> file. It will open in your default browser. If your default browser is not Chrome or Edge, right-click the file and choose <strong>Open with &gt; Google Chrome</strong> or <strong>Open with &gt; Microsoft Edge</strong>.</p>
+
+      <h3 id="open-new">Opening or Creating a File</h3>
+      <p>When the application first loads you will see a welcome screen with two options:</p>
+      <ol class="steps">
+        <li>
+          <div class="step-content">
+            <strong>Open Existing File</strong>
+            <p>Click "Open Existing File" to open a previously saved CSV file. A file browser will appear — navigate to and select your <code>.csv</code> file. Your browser will ask for read/write permission to that file — click <strong>Allow</strong> or <strong>Grant Access</strong>. You only need to do this once per session.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-content">
+            <strong>Create New File</strong>
+            <p>Click "Create New File" to start a fresh data file. A save dialog will appear — choose a location (e.g. a shared network drive) and give the file a meaningful name such as <code>EFT_Requests_2026.csv</code>. The file is created immediately with just the header row and is ready for entries.</p>
+          </div>
+        </li>
+      </ol>
+
+      <div class="callout tip">
+        <div class="icon-box">&#128161;</div>
+        <div><strong>Shared network drive?</strong> If your team is sharing a single CSV file, save it to a shared network location that all users can access. Each user opens the same file in their own browser. The tool will automatically sync changes from other users every 15 seconds.</div>
+      </div>
+    </section>
+
+    <!-- 3. THE INTERFACE -->
+    <section id="interface">
+      <h2><span class="icon">3</span> The Interface</h2>
+
+      <h3 id="stats-bar">Stats Bar</h3>
+      <p>Immediately below the header you will see a row of six summary cards:</p>
+      <table class="field-table">
+        <thead><tr><th>Card</th><th>What it shows</th></tr></thead>
+        <tbody>
+          <tr><td>Total</td><td>Total number of requests and their combined value (£)</td></tr>
+          <tr><td>Pending</td><td>Requests awaiting a second-person check</td></tr>
+          <tr><td>Checked</td><td>Requests verified and ready for bank submission</td></tr>
+          <tr><td>Sent</td><td>Requests exported and submitted to the payment system</td></tr>
+          <tr><td>Completed</td><td>Requests confirmed as successfully transferred</td></tr>
+          <tr><td>Failed</td><td>Requests that were rejected or failed</td></tr>
+        </tbody>
+      </table>
+      <p>These totals update in real time whenever a record is added, edited, or its status changes.</p>
+
+      <h3 id="toolbar">Toolbar &amp; Table</h3>
+      <p>The main <strong>Requests</strong> tab contains a toolbar above the data table. From left to right:</p>
+      <ul>
+        <li><strong>Search box</strong> — instantly filters records by any visible field (user, project, pool, customer name, sort code, account number, status, and more).</li>
+        <li><strong>Status filter</strong> — dropdown to show only records at a particular status (All, Pending, Checked, Sent, Completed, or Failed).</li>
+        <li><strong>Export button</strong> — opens the export dialog (see Section 8).</li>
+        <li><strong>+ Add Request</strong> — opens the form to create a new EFT request.</li>
+      </ul>
+
+      <p>The table itself shows all records matching the current search and filter. <strong>Click any column header to sort</strong> by that column; click again to reverse the sort direction. A small arrow (&#9650; / &#9660;) shows which column is currently sorted.</p>
+      <p>Row colours indicate status at a glance: white = Pending, light blue = Checked, light green = Sent, pale green = Completed, pale red = Failed.</p>
+
+      <div class="callout info">
+        <div class="icon-box">&#8505;</div>
+        <div><strong>Detail view:</strong> Double-click the status badge on any row to open a full read-only detail panel showing every field, including the complete audit trail (who checked it, who completed it, and when).</div>
+      </div>
+    </section>
+
+    <!-- 4. ADDING A REQUEST -->
+    <section id="adding">
+      <h2><span class="icon">4</span> Adding a Request</h2>
+      <p>Click the red <strong>+ Add Request</strong> button in the toolbar. A modal dialog will appear. All fields marked with an asterisk (*) are mandatory — the form will not save until all are filled.</p>
+
+      <h3 id="fields">Field Reference</h3>
+      <table class="field-table">
+        <thead>
+          <tr>
+            <th>Field</th>
+            <th>Description</th>
+            <th>Example</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>User <span class="req-badge">Required</span></td>
+            <td>The name or identifier of the person making the request. Used for filtering and audit purposes.</td>
+            <td>J.Smith</td>
+          </tr>
+          <tr>
+            <td>Project <span class="req-badge">Required</span></td>
+            <td>The project, case, or reference code this transfer relates to.</td>
+            <td>PRJ-2026-001</td>
+          </tr>
+          <tr>
+            <td>Pool <span class="req-badge">Required</span></td>
+            <td>The Pepper Money pool or funding account that the transfer originates from.</td>
+            <td>POOL-01</td>
+          </tr>
+          <tr>
+            <td>Pool Account Number <span class="req-badge">Required</span></td>
+            <td>The account number associated with the pool. Stored as text to prevent Excel from modifying it.</td>
+            <td>12345678</td>
+          </tr>
+          <tr>
+            <td>Customer Name <span class="req-badge">Required</span></td>
+            <td>The full name of the customer receiving the funds.</td>
+            <td>Jane Doe</td>
+          </tr>
+          <tr>
+            <td>Customer Sort Code <span class="req-badge">Required</span></td>
+            <td>The 6-digit UK sort code of the receiving bank account. Stored as text to prevent Excel treating it as a date.</td>
+            <td>12-34-56</td>
+          </tr>
+          <tr>
+            <td>Customer Bank Account <span class="req-badge">Required</span></td>
+            <td>The receiving bank account number. Stored as text.</td>
+            <td>87654321</td>
+          </tr>
+          <tr>
+            <td>Amount (£) <span class="req-badge">Required</span></td>
+            <td>The transfer amount in GBP. Must be greater than zero. Supports up to two decimal places.</td>
+            <td>1,500.00</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>Once all fields are filled, click <strong>Save Request</strong>. The record is added with a status of <strong>Pending</strong> and the current date/time is recorded as the "Time Added". A yellow dot will appear on the Save button in the header, indicating there are unsaved changes.</p>
+
+      <div class="callout warning">
+        <div class="icon-box">&#9888;</div>
+        <div>Adding a record does <strong>not</strong> automatically save the file. You must click the <strong>Save</strong> button in the header to write changes to disk — unless the tool triggers an auto-save (which happens automatically on status changes and deletes).</div>
+      </div>
+    </section>
+
+    <!-- 5. THE WORKFLOW -->
+    <section id="workflow">
+      <h2><span class="icon">5</span> The EFT Workflow</h2>
+      <p>Every EFT request follows a strict progression through five states. Understanding this pipeline is central to using the tool correctly.</p>
+
+      <div class="workflow">
+        <div class="wf-node wf-pending">Pending</div>
+        <div class="wf-arrow">&#8594;</div>
+        <div class="wf-node wf-checked">Checked</div>
+        <div class="wf-arrow">&#8594;</div>
+        <div class="wf-node wf-sent">Sent</div>
+        <div class="wf-arrow">&#8594;</div>
+        <div class="wf-node wf-completed">Completed</div>
+        <div style="color: var(--muted); font-size: .9rem; margin: 0 4px;">or</div>
+        <div class="wf-node wf-failed">Failed</div>
+      </div>
+
+      <h3 id="pending">Step 1 — Pending (Requester)</h3>
+      <p>A request starts as <strong>Pending</strong> as soon as it is saved. At this stage, the requester should verify their entry is correct. The record can still be <strong>edited</strong> or <strong>deleted</strong> while it is Pending.</p>
+
+      <h3 id="checking">Step 2 — Checking (Second Person)</h3>
+      <p>A <strong>different person</strong> from the requester should carry out the check. This is a four-eyes control to catch errors before funds are moved. To check a request:</p>
+      <ol class="steps">
+        <li>
+          <div class="step-content">
+            <strong>Click the blue check button (&#10003;) in the Actions column</strong>
+            <p>The Check modal will open. All fields are read-only — you are reviewing, not editing.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-content">
+            <strong>Review all details carefully</strong>
+            <p>Verify the customer name, sort code, account number, amount, and pool against your source documentation.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-content">
+            <strong>Enter your name in the "Checker's Name" field</strong>
+            <p>Your name is recorded in the audit trail along with the current timestamp.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-content">
+            <strong>Click "Confirm Check"</strong>
+            <p>The status changes to <strong>Checked</strong> and the file is auto-saved. The edit and check buttons are now disabled to prevent further changes.</p>
+          </div>
+        </li>
+      </ol>
+
+      <div class="callout danger">
+        <div class="icon-box">&#9888;</div>
+        <div><strong>Important:</strong> Once a request is marked as Checked, <strong>it cannot be edited</strong>. If an error is found after checking, the record must be deleted and re-entered. This protects the integrity of the audit trail.</div>
+      </div>
+
+      <h3 id="sent">Step 3 — Marking as Sent (Operations)</h3>
+      <p>Once checked records have been exported (see Section 8) and submitted to the bank or payment system, they are automatically or manually marked as <strong>Sent</strong>. The export process includes an option to mark all exported Checked records as Sent in a single step.</p>
+
+      <div class="callout info">
+        <div class="icon-box">&#8505;</div>
+        <div>The "Mark exported Checked records as Sent after export" checkbox in the Export dialog is the recommended way to transition records from Checked to Sent — it keeps the export and status update in perfect sync.</div>
+      </div>
+
+      <h3 id="completing">Step 4 — Completing or Failing</h3>
+      <p>Once the bank has processed the payment (or rejected it), a team member should close out the request. To do this:</p>
+      <ol class="steps">
+        <li>
+          <div class="step-content">
+            <strong>Click the green complete button (&#10004;) in the Actions column</strong>
+            <p>This button only appears on Sent records.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-content">
+            <strong>Review the read-only details</strong>
+            <p>Confirm you are looking at the correct record.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-content">
+            <strong>Select an outcome: Completed or Failed</strong>
+            <p>Use "Completed" if the funds transferred successfully. Use "Failed" if the bank rejected or returned the payment.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-content">
+            <strong>Enter your name and click "Confirm Outcome"</strong>
+            <p>The status updates, your name and the timestamp are recorded, and the file is auto-saved.</p>
+          </div>
+        </li>
+      </ol>
+      <p>Completed and Failed records are <strong>terminal</strong> — no further status changes are possible. Only deletion is available.</p>
+    </section>
+
+    <!-- 6. EDITING & DELETING -->
+    <section id="editing">
+      <h2><span class="icon">6</span> Editing &amp; Deleting</h2>
+
+      <h3>Editing a Record</h3>
+      <p>Click the <strong>pencil icon (&#9998;)</strong> in the Actions column to edit a Pending request. Editing is only available while a record is in Pending status — once checked, the record is locked.</p>
+      <p>When you save an edit, the <strong>Time Edited</strong> field is updated to the current timestamp. All other original fields (Time Added, original index) remain unchanged.</p>
+
+      <h3>Deleting a Record</h3>
+      <p>Click the <strong>red bin icon (&#128465;)</strong> to delete any record regardless of its status. A confirmation dialog will appear — this action <strong>cannot be undone</strong>. Deletion triggers an auto-save.</p>
+
+      <div class="callout warning">
+        <div class="icon-box">&#9888;</div>
+        <div>Deleting a Completed or Failed record will permanently remove it from the audit trail. Consider exporting records before deletion if historical data needs to be retained.</div>
+      </div>
+    </section>
+
+    <!-- 7. SEARCH & FILTER -->
+    <section id="search-filter">
+      <h2><span class="icon">7</span> Search &amp; Filter</h2>
+      <p>The toolbar provides two ways to narrow down the records displayed in the table:</p>
+
+      <h3>Search</h3>
+      <p>Type anything into the search box to instantly filter records. The search checks the following fields simultaneously:</p>
+      <ul>
+        <li>Record index number</li>
+        <li>User name</li>
+        <li>Project</li>
+        <li>Pool and Pool Account Number</li>
+        <li>Customer Name</li>
+        <li>Customer Sort Code and Bank Account</li>
+        <li>Amount</li>
+        <li>Date/time added</li>
+        <li>Checker and completer names</li>
+        <li>Status</li>
+      </ul>
+      <p>The search is case-insensitive. Click the <strong>&#10005;</strong> button inside the search box to clear the search and show all records.</p>
+
+      <h3>Status Filter</h3>
+      <p>Use the dropdown to show only records at a specific status. The search and status filter work together — for example, you can search for "J.Smith" and also filter to only show Pending records.</p>
+
+      <h3>Sorting</h3>
+      <p>Click any column header to sort by that column. Click again to reverse the sort order. The currently sorted column shows a small triangle indicator. Sorting is applied on top of any active search/filter.</p>
+    </section>
+
+    <!-- 8. EXPORTING -->
+    <section id="export">
+      <h2><span class="icon">8</span> Exporting Data</h2>
+      <p>Click the <strong>Export</strong> button in the toolbar to open the Export dialog. You have three export scope options:</p>
+      <table class="field-table">
+        <thead><tr><th>Option</th><th>What is exported</th></tr></thead>
+        <tbody>
+          <tr><td>All records</td><td>Every request in the file, regardless of status.</td></tr>
+          <tr><td>Checked only</td><td>Only records with a status of Checked. This is the recommended option for bank submissions.</td></tr>
+          <tr><td>Current filtered view</td><td>Only the records visible in the table right now (based on your active search/filter).</td></tr>
+        </tbody>
+      </table>
+
+      <p>There is also an important checkbox at the bottom of the Export dialog:</p>
+      <div class="callout success">
+        <div class="icon-box">&#10003;</div>
+        <div><strong>"Mark exported Checked records as Sent after export"</strong> — When ticked, any Checked records included in the export will automatically have their status updated to Sent once the CSV downloads. This is recommended for the standard bank-submission workflow as it keeps the data in sync with what has actually been submitted.</div>
+      </div>
+
+      <p>The exported file is a standard CSV that can be opened in Excel, Microsoft Dynamics, or any payment processing system. Sort codes and bank account numbers are exported using a special Excel text-force format (<code>="12-34-56"</code>) to prevent Excel from misinterpreting them as dates or numbers.</p>
+    </section>
+
+    <!-- 9. SAVING -->
+    <section id="saving">
+      <h2><span class="icon">9</span> Saving &amp; Auto-Save</h2>
+
+      <h3>Manual Save</h3>
+      <p>After adding or editing a record, a <strong>yellow dot</strong> appears on the Save button in the header bar. Click <strong>Save</strong> to write all changes to the CSV file on disk. A confirmation dialog will appear — click Save to confirm.</p>
+      <p>Your browser will only ask for file permission once per session. If you accidentally revoke permission, close and reopen the file.</p>
+
+      <h3>Auto-Save</h3>
+      <p>Certain actions trigger an automatic silent save without requiring you to click the Save button:</p>
+      <ul>
+        <li>Marking a record as Checked</li>
+        <li>Marking a record as Sent (via the Export workflow)</li>
+        <li>Marking a record as Completed or Failed</li>
+        <li>Deleting a record</li>
+      </ul>
+      <p>You will see a green "Saved &#10003;" toast notification in the bottom-right corner when an auto-save completes.</p>
+
+      <h3>Background Sync (Multi-User)</h3>
+      <p>While a file is open, the tool checks for external changes to the CSV file on disk every <strong>15 seconds</strong>. If another user has saved changes in the meantime, those changes are merged silently into your view. You will see an orange toast notification informing you how many updates were synced. For more detail, see Section 11.</p>
+
+      <div class="callout tip">
+        <div class="icon-box">&#128161;</div>
+        <div>Get into the habit of saving immediately after adding records — especially if others are working in the same file. This ensures your new entries have unique index numbers and reduces the chance of conflicts.</div>
+      </div>
+    </section>
+
+    <!-- 10. STATISTICS DASHBOARD -->
+    <section id="statistics">
+      <h2><span class="icon">10</span> Statistics Dashboard</h2>
+      <p>Click the <strong>Statistics</strong> tab to open the analytics dashboard. This provides a live summary of your data with powerful filtering tools.</p>
+
+      <h3>Filter Bar</h3>
+      <p>At the top of the Statistics tab is a filter bar with four controls:</p>
+      <ul>
+        <li><strong>Status</strong> — tick/untick checkboxes to include or exclude records by status in all charts and tables.</li>
+        <li><strong>Project</strong> — filter to a single project using the dropdown.</li>
+        <li><strong>Date Added (From / To)</strong> — restrict the data to a specific date range.</li>
+        <li><strong>Reset button</strong> — clear all Statistics filters at once.</li>
+      </ul>
+      <p>A summary pill on the right shows the current count and total value of records matching the active filters.</p>
+
+      <h3>Breakdown Tables</h3>
+      <p>The default inner tab shows four breakdown tables:</p>
+      <ul>
+        <li><strong>By Project</strong> — count and total value per project, with a visual bar indicator.</li>
+        <li><strong>By User</strong> — how many requests each user has submitted and their combined value.</li>
+        <li><strong>By Pool</strong> — activity and value per pool account.</li>
+        <li><strong>By Status</strong> — aggregate count and value per status, with sent vs. unsent indicators.</li>
+      </ul>
+
+      <h3>Over Time Chart</h3>
+      <p>Switch to the <strong>"Over Time"</strong> inner tab to see a bar chart showing the number of requests added per calendar month. Useful for identifying busy periods and trends.</p>
+
+      <h3>Amounts Chart</h3>
+      <p>The <strong>"Amounts"</strong> inner tab displays a histogram of transfer values, showing the distribution of request sizes. A summary below the chart shows total, average, minimum, and maximum amounts.</p>
+    </section>
+
+    <!-- 11. MULTI-USER COLLABORATION -->
+    <section id="multi-user">
+      <h2><span class="icon">11</span> Multi-User Collaboration</h2>
+      <p>The EFT Request Manager supports a basic form of concurrent multi-user access by sharing a single CSV file on a network drive. Here is how it works and what to be aware of.</p>
+
+      <h3>How Collaboration Works</h3>
+      <ul>
+        <li>Each user opens the same CSV file in their own browser on their own computer.</li>
+        <li>Every 15 seconds, the tool silently checks whether the file on disk has been changed by someone else.</li>
+        <li>If changes are detected, they are <strong>merged</strong> into the current user's view using a timestamp-based strategy: the most recently modified version of each record wins.</li>
+        <li>New records added by other users appear automatically.</li>
+        <li>Records deleted by other users are removed automatically.</li>
+      </ul>
+
+      <div class="callout info">
+        <div class="icon-box">&#8505;</div>
+        <div>Index collision prevention: when adding a new record, the tool reads the file from disk in real time to find the current highest index number, preventing two users from creating records with the same index even if they both click "Add Request" simultaneously.</div>
+      </div>
+
+      <h3>Merge Behaviour</h3>
+      <p>When two users have both made changes before either saves, the tool compares timestamps to decide which version to keep:</p>
+      <ul>
+        <li>If the version on disk has a more recent activity timestamp (checked, completed, sent), the disk version's status fields are used.</li>
+        <li>If the version on disk has a more recent edit timestamp, the disk version's data fields are used.</li>
+        <li>Records that appear on disk but not in memory are added.</li>
+        <li>Records that exist in memory but were deleted from disk are removed (provided their "Time Added" predates the last known sync).</li>
+      </ul>
+    </section>
+
+    <!-- 12. CAVEATS & LIMITATIONS -->
+    <section id="caveats">
+      <h2><span class="icon">12</span> Caveats &amp; Limitations</h2>
+      <p>The EFT Request Manager is a practical, lightweight tool. It is important to understand its limitations before relying on it for critical financial operations.</p>
+
+      <div class="limit-grid">
+        <div class="limit-card">
+          <h4>&#9888; No real-time locking</h4>
+          <p>Two users can open and edit the same record simultaneously. The last person to save wins. There is no record-level locking or conflict warning. Coordinate with your team to avoid simultaneous edits to the same record.</p>
+        </div>
+        <div class="limit-card">
+          <h4>&#9888; 15-second sync delay</h4>
+          <p>Background synchronisation runs every 15 seconds. Changes made by other users may not appear immediately. Critical updates should be communicated verbally or via messaging alongside the tool.</p>
+        </div>
+        <div class="limit-card">
+          <h4>&#9888; Chrome / Edge only</h4>
+          <p>The File System Access API is not supported in Firefox, Safari, or Internet Explorer. All users must use Google Chrome or Microsoft Edge. The tool will not function at all in unsupported browsers.</p>
+        </div>
+        <div class="limit-card">
+          <h4>&#9888; Local / network file only</h4>
+          <p>Data is stored in a CSV file on the user's local drive or a network share. It is not backed by a database server. If the file is deleted or the network share becomes unavailable, data may be lost. Regular backups are strongly recommended.</p>
+        </div>
+        <div class="limit-card">
+          <h4>&#9888; No user authentication</h4>
+          <p>There is no login system. Anyone who can access the HTML file and the CSV file can add, edit, or delete records. The "User" and "Checker's Name" fields are free-text and are not verified against any user directory.</p>
+        </div>
+        <div class="limit-card">
+          <h4>&#9888; No bank integration</h4>
+          <p>The tool does not connect to any bank or payment system. It produces a CSV export which must be manually uploaded to your payment platform. It does not verify sort codes or account numbers.</p>
+        </div>
+        <div class="limit-card">
+          <h4>&#9888; Large file performance</h4>
+          <p>The tool holds all records in browser memory. Performance may degrade with very large files (thousands of records). Consider archiving completed records periodically by exporting and starting a new file for each year or quarter.</p>
+        </div>
+        <div class="limit-card">
+          <h4>&#9888; No undo functionality</h4>
+          <p>There is no undo button. Deletions are permanent once the file is saved. Status changes (Checked, Sent, Completed, Failed) cannot be reversed through the interface — contact a system administrator if a rollback is needed.</p>
+        </div>
+        <div class="limit-card">
+          <h4>&#9888; Data in CSV is plain text</h4>
+          <p>The CSV file contains sensitive financial data in plain text. Ensure the file is stored in a secure, access-controlled location. Do not store the file on a public or unprotected drive.</p>
+        </div>
+        <div class="limit-card">
+          <h4>&#9888; Session-only permissions</h4>
+          <p>Browser file permissions are granted per session. Each time you open the HTML file in a new browser session, you will need to re-open the CSV and re-grant file access permission.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 13. TIPS -->
+    <section id="tips">
+      <h2><span class="icon">13</span> Tips &amp; Best Practices</h2>
+      <ol>
+        <li><strong>Use a shared network drive</strong> — store the CSV on a shared drive accessible to all team members. This ensures everyone is working from the same data.</li>
+        <li><strong>Save frequently</strong> — always save after adding records. Do not rely solely on auto-save.</li>
+        <li><strong>Enforce the four-eyes rule</strong> — the Checker should always be a different person from the Requester. The tool does not enforce this, but your procedures should.</li>
+        <li><strong>Use consistent naming</strong> — standardise User names and Project codes across the team. This makes searching and the Statistics dashboard much more useful.</li>
+        <li><strong>Archive periodically</strong> — export completed records and start a new file each quarter or year to keep performance snappy and files manageable.</li>
+        <li><strong>Back up the CSV</strong> — schedule regular automated backups of the CSV file, especially before bulk exports or major operations.</li>
+        <li><strong>Double-check sort codes</strong> — the tool stores sort codes as text and does not validate them. Verify against your source documentation before checking any request.</li>
+        <li><strong>Communicate changes</strong> — if you are about to perform a bulk status change or delete records, let colleagues know so they are not mid-workflow at the same time.</li>
+        <li><strong>Keep the HTML file up to date</strong> — when a new version of the tool is released, replace the HTML file. The CSV data file is separate and unaffected by tool updates.</li>
+      </ol>
+
+      <div class="callout success">
+        <div class="icon-box">&#10003;</div>
+        <div><strong>Questions or issues?</strong> Contact the Pepper Money Operations team or your system administrator. Feature requests and bug reports should be raised via the internal ticketing system.</div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div>
+    <div class="footer-logo"><span class="pepper">pepper</span><span class="dot">·</span>money</div>
+    <div style="margin-top:4px; font-size:.75rem;">EFT Request Manager &mdash; User Guide &mdash; v1.0 &mdash; May 2026</div>
+  </div>
+  <div>Internal use only &mdash; Pepper Money Operations</div>
+</footer>
+
+<script>
+  // ── PDF Download ──────────────────────────────────────
+  function downloadPDF() {
+    const btn = document.querySelector('.btn-pdf');
+    btn.textContent = 'Generating PDF...';
+    btn.disabled = true;
+
+    const opt = {
+      margin:      [12, 12, 12, 12],
+      filename:    'EFT_Request_Manager_User_Guide.pdf',
+      image:       { type: 'jpeg', quality: 0.97 },
+      html2canvas: { scale: 2, useCORS: true, logging: false },
+      jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak:   { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+
+    // Clone and prepare content for PDF
+    const sidebar = document.getElementById('sidebar');
+    const topBar  = document.getElementById('topBar');
+    sidebar.style.display  = 'none';
+    topBar.style.display   = 'none';
+
+    const content = document.getElementById('mainContent');
+    content.style.padding = '20px 30px';
+
+    html2pdf().set(opt).from(document.body).save().then(() => {
+      sidebar.style.display  = '';
+      topBar.style.display   = '';
+      content.style.padding  = '';
+      btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download PDF';
+      btn.disabled = false;
+    });
+  }
+
+  // ── Active sidebar link on scroll ────────────────────
+  const sections = document.querySelectorAll('section[id]');
+  const links    = document.querySelectorAll('.sidebar a');
+
+  function onScroll() {
+    let current = '';
+    sections.forEach(s => {
+      const top = s.getBoundingClientRect().top;
+      if (top <= 120) current = s.id;
+    });
+    links.forEach(a => {
+      a.classList.remove('active');
+      if (a.getAttribute('href') === '#' + current) a.classList.add('active');
+    });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+</script>
+
+</body>
+</html>
