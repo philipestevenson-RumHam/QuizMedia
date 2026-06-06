@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚽ World Cup 2026 Sweepstake</title>
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --gold:#FFD700;--gold2:#FF8C00;--green-dark:#0b3d0b;--green-mid:#145214;
+  --green-light:#1e7a1e;--panel-bg:rgba(0,0,0,0.48);--border:rgba(255,215,0,0.18);
+}
+body{
+  font-family:'Inter',sans-serif;min-height:100vh;color:#fff;
+  background-color:var(--green-dark);
+  background-image:
+    repeating-linear-gradient(0deg,transparent,transparent 70px,rgba(255,255,255,0.022) 70px,rgba(255,255,255,0.022) 140px),
+    repeating-linear-gradient(90deg,transparent,transparent 70px,rgba(255,255,255,0.012) 70px,rgba(255,255,255,0.012) 140px),
+    radial-gradient(ellipse at 50% 40%,#1c6b1c 0%,#0b3d0b 70%);
+  background-attachment:fixed;
+}
+.header{
+  text-align:center;padding:22px 16px 14px;
+  background:rgba(0,0,0,0.35);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);position:relative;overflow:hidden;
+}
+.header::before,.header::after{content:'⚽';position:absolute;font-size:5rem;opacity:0.06;top:50%;transform:translateY(-50%)}
+.header::before{left:3%}.header::after{right:3%}
+.header h1{
+  font-family:'Bebas Neue',cursive;font-size:clamp(1.8rem,4.5vw,3.2rem);
+  letter-spacing:6px;
+  background:linear-gradient(180deg,#FFD700 0%,#FF8C00 60%,#FFD700 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 2px 8px rgba(255,140,0,0.35));
+}
+.header .sub{font-size:0.72rem;letter-spacing:3.5px;text-transform:uppercase;color:rgba(255,255,255,0.45);margin-top:5px}
+#setupScreen{display:block}
+#drawScreen{display:none}
+
+/* ── SETUP ── */
+.setup-wrap{max-width:960px;margin:0 auto;padding:28px 20px}
+.setup-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:20px;
+  align-items:stretch; /* both boxes same height */
+}
+@media(max-width:660px){.setup-grid{grid-template-columns:1fr}}
+.setup-box{
+  background:var(--panel-bg);backdrop-filter:blur(12px);
+  border-radius:16px;padding:20px;border:1px solid var(--border);
+  box-shadow:0 8px 32px rgba(0,0,0,0.45);
+  display:flex;flex-direction:column; /* ← flex so textarea fills height */
+}
+.box-title{
+  font-family:'Bebas Neue',cursive;font-size:1.2rem;letter-spacing:3px;color:var(--gold);
+  margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;flex-shrink:0;
+}
+label{display:block;font-size:0.7rem;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,0.5);margin-bottom:5px;font-weight:500;flex-shrink:0}
+textarea,input[type=number]{
+  width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);
+  border-radius:9px;color:#fff;padding:10px 12px;font-family:'Inter',sans-serif;
+  font-size:0.87rem;transition:border-color .2s,background .2s;
+}
+/* Textarea fills remaining flex space */
+textarea{
+  flex:1;min-height:220px;resize:none;line-height:1.7;
+}
+textarea:focus,input[type=number]:focus{outline:none;border-color:var(--gold);background:rgba(255,215,0,0.06)}
+input[type=number]{-moz-appearance:textfield;appearance:textfield;flex-shrink:0}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end;flex-shrink:0;margin-top:14px}
+.info-text{font-size:0.73rem;color:rgba(255,255,255,0.38);margin-top:5px;min-height:18px;line-height:1.4;flex-shrink:0}
+.info-text.warn{color:#fbbf24}.info-text.ok{color:#4ade80}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:11px 18px;border:none;border-radius:10px;
+  font-family:'Bebas Neue',cursive;font-size:1.05rem;letter-spacing:2px;
+  cursor:pointer;transition:all .2s;white-space:nowrap;
+}
+.btn-block{width:100%;margin-top:10px}
+.btn-gold{background:linear-gradient(135deg,#FFD700,#FF8C00);color:#1a1a1a;box-shadow:0 4px 16px rgba(255,140,0,0.3)}
+.btn-gold:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 22px rgba(255,140,0,0.5)}
+.btn-ghost{background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.75);border:1px solid rgba(255,255,255,0.18)}
+.btn-ghost:hover:not(:disabled){background:rgba(255,255,255,0.14)}
+.btn-green{background:linear-gradient(135deg,#22c55e,#15803d);color:#fff;box-shadow:0 4px 14px rgba(34,197,94,0.3)}
+.btn-green:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 20px rgba(34,197,94,0.4)}
+.btn-red{background:linear-gradient(135deg,#ef4444,#991b1b);color:#fff}
+.btn-red:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 4px 14px rgba(239,68,68,0.4)}
+.btn-auto-on{background:linear-gradient(135deg,#22c55e,#15803d);color:#fff;box-shadow:0 4px 14px rgba(34,197,94,0.35)}
+.btn-auto-on:hover:not(:disabled){transform:translateY(-2px)}
+.btn-sm{font-size:0.85rem;padding:7px 14px;letter-spacing:1.5px}
+.btn:disabled{opacity:0.38;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+.prefill-btn{
+  font-size:0.72rem;padding:5px 10px;border-radius:6px;margin-bottom:8px;
+  background:rgba(255,215,0,0.12);color:var(--gold);border:1px solid rgba(255,215,0,0.3);
+  cursor:pointer;font-family:'Inter',sans-serif;letter-spacing:0;transition:all .15s;flex-shrink:0;
+}
+.prefill-btn:hover{background:rgba(255,215,0,0.22)}
+
+/* ── DRAW LAYOUT ── */
+.draw-wrap{
+  max-width:1480px;margin:0 auto;padding:16px 16px 30px;
+  display:grid;grid-template-columns:260px 1fr 272px;gap:16px;align-items:start;
+}
+@media(max-width:1100px){.draw-wrap{grid-template-columns:1fr}.wheel-col{order:-1}}
+.panel{
+  background:var(--panel-bg);backdrop-filter:blur(12px);
+  border-radius:16px;padding:18px;border:1px solid var(--border);
+  box-shadow:0 8px 32px rgba(0,0,0,0.45);
+}
+.panel-title{
+  font-family:'Bebas Neue',cursive;font-size:1.15rem;letter-spacing:3px;color:var(--gold);
+  margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;
+}
+/* ── LEFT PANEL ── */
+.player-queue{display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto;margin-bottom:14px}
+.pq-item{
+  display:flex;align-items:center;gap:8px;padding:7px 10px;
+  border-radius:8px;border:1px solid rgba(255,255,255,0.08);
+  background:rgba(255,255,255,0.04);font-size:0.83rem;transition:all .25s;
+}
+.pq-item.active{border-color:rgba(255,215,0,0.7);background:rgba(255,215,0,0.08);box-shadow:0 0 12px rgba(255,215,0,0.12)}
+.pq-item.done{opacity:0.35;text-decoration:line-through}
+.pq-num{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:600;flex-shrink:0}
+.pq-item.active .pq-num{background:var(--gold);color:#1a1a1a}
+.pq-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pq-progress{font-size:0.7rem;color:rgba(255,255,255,0.4);flex-shrink:0}
+.pq-item.active .pq-progress{color:var(--gold)}
+.rec-section{margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+.rec-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.rec-indicator{display:none;align-items:center;gap:6px;font-size:0.72rem;color:#ef4444;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+.rec-indicator.show{display:flex}
+.rec-dot{width:8px;height:8px;border-radius:50%;background:#ef4444;animation:recblink 1s ease-in-out infinite}
+@keyframes recblink{0%,100%{opacity:1}50%{opacity:0.15}}
+.rec-info{font-size:0.68rem;color:rgba(255,255,255,0.35);margin-top:6px;text-align:center;line-height:1.4}
+/* ── WHEEL COL ── */
+.wheel-col{display:flex;flex-direction:column;align-items:center;gap:14px}
+.cp-box{
+  width:100%;max-width:580px;
+  background:rgba(0,0,0,0.5);border:2px solid rgba(255,215,0,0.65);border-radius:14px;
+  padding:12px 20px;display:flex;align-items:center;justify-content:space-between;
+}
+.cp-label-sm{font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.45)}
+.cp-name-big{font-family:'Bebas Neue',cursive;font-size:1.9rem;color:var(--gold);letter-spacing:2px;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px}
+.cp-count-big{font-family:'Bebas Neue',cursive;font-size:1.4rem;color:#fff;letter-spacing:1px}
+#wheelCanvas{
+  display:block;cursor:pointer;
+  filter:drop-shadow(0 0 28px rgba(255,215,0,0.22)) drop-shadow(0 8px 32px rgba(0,0,0,0.6));
+  transition:filter .3s;
+}
+#wheelCanvas:hover:not(.spinning){filter:drop-shadow(0 0 38px rgba(255,215,0,0.38)) drop-shadow(0 8px 32px rgba(0,0,0,0.6))}
+#wheelCanvas.spinning{cursor:default}
+.spin-area{display:flex;flex-direction:column;align-items:center;gap:8px;width:100%;max-width:400px}
+.spin-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
+#spinBtn{font-size:1.4rem;padding:15px 0}
+.rem-text{font-size:0.75rem;color:rgba(255,255,255,0.38);letter-spacing:1px;text-align:center}
+#completeBanner{
+  width:100%;max-width:580px;
+  background:linear-gradient(135deg,rgba(34,197,94,0.18),rgba(16,185,129,0.18));
+  border:2px solid #22c55e;border-radius:16px;padding:22px;text-align:center;display:none;
+}
+#completeBanner h2{font-family:'Bebas Neue',cursive;font-size:2.2rem;color:#22c55e;letter-spacing:4px}
+#completeBanner p{color:rgba(255,255,255,0.65);margin-top:8px;font-size:0.88rem}
+/* ── RIGHT PANEL ── */
+.results-list{max-height:530px;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+.p-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);border-radius:10px;padding:11px 13px;transition:border-color .25s,background .25s}
+.p-card.active{border-color:rgba(255,215,0,0.6);background:rgba(255,215,0,0.055)}
+.p-card-name{font-family:'Bebas Neue',cursive;font-size:0.95rem;letter-spacing:1.5px;color:var(--gold);margin-bottom:7px}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:5px;padding:2px 8px;font-size:0.7rem;color:rgba(255,255,255,0.85);white-space:nowrap}
+.chip-empty{background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.13);border-radius:5px;padding:2px 8px;font-size:0.7rem;color:rgba(255,255,255,0.22);white-space:nowrap}
+.export-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:rgba(255,255,255,0.04);border-radius:3px}
+::-webkit-scrollbar-thumb{background:rgba(255,215,0,0.28);border-radius:3px}
+@keyframes slideUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.slide-up{animation:slideUp .4s ease forwards}
+@keyframes popIn{0%{transform:scale(0.8);opacity:0}70%{transform:scale(1.06)}100%{transform:scale(1);opacity:1}}
+.pop-in{animation:popIn .45s ease forwards}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <h1>⚽ World Cup 2026 Sweepstake ⚽</h1>
+  <p class="sub">USA · Canada · Mexico &nbsp;|&nbsp; The Ultimate Draw Machine</p>
+</header>
+
+<!-- ══════════ SETUP SCREEN ══════════ -->
+<div id="setupScreen">
+  <div class="setup-wrap">
+    <div class="setup-grid">
+      <!-- TEAMS BOX -->
+      <div class="setup-box">
+        <div class="box-title">🌍 Teams</div>
+        <button class="prefill-btn" id="prefillBtn">⚡ Quick-fill all 48 WC 2026 Teams</button>
+        <label>One team per line</label>
+        <textarea id="teamsInput" placeholder="England&#10;Spain&#10;Brazil&#10;..."></textarea>
+        <div class="info-text" id="teamsCount">0 teams entered</div>
+      </div>
+      <!-- PLAYERS BOX -->
+      <div class="setup-box">
+        <div class="box-title">👥 Players</div>
+        <label>One player per line</label>
+        <textarea id="playersInput" placeholder="Alice&#10;Bob&#10;Charlie&#10;Dave&#10;..."></textarea>
+        <div class="form-row">
+          <div>
+            <label>Teams per player</label>
+            <input type="number" id="tppInput" value="4" min="1" max="48">
+          </div>
+          <div>
+            <label>&nbsp;</label>
+            <div class="info-text" id="calcInfo" style="padding:8px 0">—</div>
+          </div>
+        </div>
+        <div class="info-text" id="setupWarn" style="margin-top:4px"></div>
+      </div>
+    </div>
+    <div style="max-width:420px;margin:20px auto 0">
+      <button class="btn btn-gold btn-block" id="startBtn">🏆 Start the Draw!</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ DRAW SCREEN ══════════ -->
+<div id="drawScreen">
+  <div class="draw-wrap">
+
+    <!-- LEFT: Queue + Recording -->
+    <div class="panel">
+      <div class="panel-title">👥 Draw Order</div>
+      <div class="player-queue" id="playerQueue"></div>
+
+      <div class="rec-section">
+        <div class="panel-title" style="font-size:1rem;margin-bottom:10px;padding-bottom:8px">🎬 Video Recording</div>
+        <div class="rec-indicator" id="recIndicator"><div class="rec-dot"></div>Recording…</div>
+        <div class="rec-row">
+          <button class="btn btn-red btn-sm" id="recStartBtn">⏺ Record</button>
+          <button class="btn btn-ghost btn-sm" id="recStopBtn" disabled>⏹ Save Video</button>
+        </div>
+        <div class="rec-info">Saves as .mp4 (Chrome 130+) or .webm (older browsers).<br>Works best in Chrome / Edge.</div>
+      </div>
+
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+        <button class="btn btn-ghost btn-sm" id="resetBtn" style="width:100%">↺ Reset Draw</button>
+      </div>
+    </div>
+
+    <!-- CENTER: Wheel -->
+    <div class="wheel-col">
+      <div class="cp-box" id="cpBox">
+        <div>
+          <div class="cp-label-sm">Now Drawing For</div>
+          <div class="cp-name-big" id="cpName">—</div>
+        </div>
+        <div style="text-align:right">
+          <div class="cp-label-sm">Team</div>
+          <div class="cp-count-big" id="cpCount">0 / 0</div>
+        </div>
+      </div>
+
+      <canvas id="wheelCanvas" width="580" height="580"></canvas>
+
+      <div class="spin-area">
+        <div class="spin-row">
+          <button class="btn btn-gold" id="spinBtn" style="font-size:1.4rem;padding:15px 0">SPIN ⚽</button>
+          <button class="btn btn-ghost btn-sm" id="autoBtn">▶▶ Auto Spin: OFF</button>
+        </div>
+        <div class="rem-text" id="remText"></div>
+      </div>
+
+      <div id="completeBanner">
+        <h2>🏆 Draw Complete! 🏆</h2>
+        <p>All teams have been assigned — good luck everyone!</p>
+      </div>
+    </div>
+
+    <!-- RIGHT: Results -->
+    <div class="panel">
+      <div class="panel-title">📋 Results</div>
+      <div class="results-list" id="resultsList">
+        <p style="color:rgba(255,255,255,0.28);font-size:0.8rem;text-align:center;padding:16px 0">
+          Results appear here as teams are drawn…
+        </p>
+      </div>
+      <div class="export-row">
+        <button class="btn btn-green btn-sm" id="exportBtn" disabled>📊 Excel</button>
+        <button class="btn btn-ghost btn-sm" id="copyBtn" disabled>📋 Copy</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════
+   PRESET TEAMS
+═══════════════════════════════════════════ */
+const WC2026_TEAMS = [
+  'Argentina','Brazil','Colombia','Uruguay','Ecuador','Paraguay',
+  'Spain','England','France','Germany','Portugal','Netherlands',
+  'Belgium','Italy','Switzerland','Austria','Croatia','Serbia',
+  'Denmark','Scotland','Turkey','Hungary',
+  'Morocco','Senegal','Nigeria','Egypt','Cameroon',"Côte d'Ivoire",
+  'DR Congo','Tunisia','Algeria',
+  'Japan','South Korea','Iran','Australia','Saudi Arabia',
+  'Iraq','Jordan','Uzbekistan',
+  'United States','Canada','Mexico','Panama','Costa Rica','Honduras',
+  'New Zealand','Venezuela','Indonesia'
+];
+
+/* ═══════════════════════════════════════════
+   CANVAS SETUP
+═══════════════════════════════════════════ */
+const canvas = document.getElementById('wheelCanvas');
+const ctx    = canvas.getContext('2d');
+const CW     = canvas.width;
+const CH     = canvas.height;
+const CX     = CW / 2;
+const CY     = CH / 2;
+const WRAD   = 268;
+const CRAD   = 38;
+
+/* ═══════════════════════════════════════════
+   STATE
+   Round-robin draw order:
+     spinIndex 0 → player 0, their 1st team
+     spinIndex 1 → player 1, their 1st team
+     spinIndex 2 → player 2, their 1st team
+     spinIndex n → player 0, their 2nd team
+     ...
+═══════════════════════════════════════════ */
+const S = {
+  teams:[],
+  players:[],
+  tpp:4,
+  remaining:[],
+  assignments:{},
+  spinIndex:0,      // replaces curPlayer + curCount
+  totalSpins:0,     // players.length * tpp
+  phase:'setup',    // 'setup'|'announce'|'ready'|'spinning'|'result'|'complete'
+  rotation:0,
+  winnerIdx:-1,
+  pulseT:0,
+  pulseRaf:0,
+  resultTeam:'',
+  resultPlayer:'',
+};
+
+let autoSpin    = false;
+let announceRaf = 0;
+
+/* ── helpers ── */
+function curPlayerIdx()  { return S.spinIndex % S.players.length; }
+function curRoundNum()   { return Math.floor(S.spinIndex / S.players.length) + 1; } // 1-based
+
+/* ═══════════════════════════════════════════
+   RECORDING  (MediaRecorder)
+═══════════════════════════════════════════ */
+let mediaRecorder = null;
+let recChunks     = [];
+let isRecording   = false;
+
+/* ═══════════════════════════════════════════
+   COLOUR HELPERS
+═══════════════════════════════════════════ */
+function segColor(i) {
+  const hue = (i * 137.508) % 360;
+  const sat  = 62 + (i % 3) * 9;
+  const lit  = 38 + (i % 2) * 14;
+  return `hsl(${hue},${sat}%,${lit}%)`;
+}
+function lightenColor(hslStr, amount) {
+  return hslStr.replace(/(\d+)%\)/, (m, l) => `${Math.min(100, +l + amount)}%)`);
+}
+
+/* ═══════════════════════════════════════════
+   ROUNDED RECT HELPER
+═══════════════════════════════════════════ */
+function roundRect(cx, x, y, w, h, r) {
+  cx.beginPath();
+  cx.moveTo(x + r, y);
+  cx.lineTo(x + w - r, y);
+  cx.quadraticCurveTo(x + w, y, x + w, y + r);
+  cx.lineTo(x + w, y + h - r);
+  cx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  cx.lineTo(x + r, y + h);
+  cx.quadraticCurveTo(x, y + h, x, y + h - r);
+  cx.lineTo(x, y + r);
+  cx.quadraticCurveTo(x, y, x + r, y);
+  cx.closePath();
+}
+
+/* ═══════════════════════════════════════════
+   WHEEL DRAWING
+═══════════════════════════════════════════ */
+function drawWheel(highlightIdx = -1, pulse = 0) {
+  ctx.clearRect(0, 0, CW, CH);
+  drawBg();
+
+  const n = S.remaining.length;
+  if (n === 0) { drawEmptyWheel(); return; }
+
+  const seg = (2 * Math.PI) / n;
+
+  ctx.save();
+  ctx.translate(CX, CY);
+  ctx.rotate(S.rotation);
+
+  for (let i = 0; i < n; i++) {
+    const a0  = i * seg;
+    const a1  = (i + 1) * seg;
+    const mid = a0 + seg / 2;
+    const isWinner = (i === highlightIdx);
+    const glow = isWinner ? 0.5 + 0.5 * Math.sin(pulse * 6) : 0;
+
+    const col = segColor(i);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.arc(0, 0, WRAD, a0, a1);
+    ctx.closePath();
+    ctx.fillStyle = isWinner ? lightenColor(col, 22 + Math.round(glow * 18)) : col;
+    ctx.fill();
+
+    if (isWinner) {
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, WRAD, a0, a1);
+      ctx.closePath();
+      ctx.strokeStyle = `rgba(255,230,0,${0.6 + glow * 0.4})`;
+      ctx.lineWidth = 3.5;
+      ctx.stroke();
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(WRAD * Math.cos(a0), WRAD * Math.sin(a0));
+    ctx.strokeStyle = 'rgba(0,0,0,0.28)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.save();
+    ctx.rotate(mid);
+    const fontSize = n > 36 ? 8 : n > 24 ? 9.5 : 11;
+    ctx.font = `600 ${fontSize}px Inter, sans-serif`;
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0,0,0,0.7)';
+    ctx.shadowBlur = 3;
+    const team  = S.remaining[i];
+    const label = team.length > 10 ? team.slice(0, 9) + '…' : team;
+    ctx.fillText(label, WRAD - 8, 0);
+    ctx.restore();
+  }
+
+  ctx.beginPath();
+  ctx.arc(0, 0, WRAD, 0, 2 * Math.PI);
+  ctx.strokeStyle = 'rgba(255,215,0,0.45)';
+  ctx.lineWidth = 3;
+  ctx.shadowColor = 'rgba(255,215,0,0.4)';
+  ctx.shadowBlur = 8;
+  ctx.stroke();
+
+  ctx.restore();
+
+  drawCenterCap();
+  drawPointer();
+  drawWatermark();
+}
+
+function drawBg() {
+  const grad = ctx.createRadialGradient(CX, CY, 0, CX, CY, CX);
+  grad.addColorStop(0, 'rgba(20,60,20,0.0)');
+  grad.addColorStop(1, 'rgba(5,20,5,0.55)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, CW, CH);
+}
+
+function drawCenterCap() {
+  ctx.save();
+  ctx.translate(CX, CY);
+  ctx.shadowColor = 'rgba(0,0,0,0.7)';
+  ctx.shadowBlur = 10;
+  ctx.beginPath();
+  ctx.arc(0, 0, CRAD, 0, 2 * Math.PI);
+  ctx.fillStyle = '#0f2a0f';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(0, 0, CRAD, 0, 2 * Math.PI);
+  ctx.strokeStyle = '#FFD700';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.font = `${CRAD * 0.9}px serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('⚽', 0, 1);
+  ctx.restore();
+}
+
+function drawPointer() {
+  const px = CX;
+  const py = CY - WRAD - 2;
+  ctx.save();
+  ctx.shadowColor = 'rgba(255,180,0,0.7)';
+  ctx.shadowBlur = 12;
+  ctx.beginPath();
+  ctx.moveTo(px, py + 32);
+  ctx.lineTo(px - 14, py);
+  ctx.lineTo(px + 14, py);
+  ctx.closePath();
+  ctx.fillStyle = '#FFD700';
+  ctx.fill();
+  ctx.strokeStyle = '#FF8C00';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawWatermark() {
+  ctx.save();
+  ctx.font = '700 11px Inter, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('⚽ World Cup 2026 Sweepstake', CX, CH - 5);
+  ctx.restore();
+}
+
+function drawEmptyWheel() {
+  ctx.save();
+  ctx.translate(CX, CY);
+  ctx.beginPath();
+  ctx.arc(0, 0, WRAD, 0, 2 * Math.PI);
+  ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,215,0,0.3)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.restore();
+  drawCenterCap();
+  drawPointer();
+}
+
+/* ═══════════════════════════════════════════
+   CANVAS OVERLAYS
+═══════════════════════════════════════════ */
+function drawResultOverlay(team, player, pulseT) {
+  const pulse = 0.5 + 0.5 * Math.sin(pulseT * 5);
+  const alpha = Math.min(1, pulseT * 4);
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  const w = 390, h = 138;
+  const x = CX - w / 2, y = CY - h / 2;
+
+  ctx.fillStyle = 'rgba(5,12,5,0.90)';
+  roundRect(ctx, x, y, w, h, 18);
+  ctx.fill();
+
+  ctx.shadowColor = `rgba(255,215,0,${0.55 * pulse})`;
+  ctx.shadowBlur  = 18;
+  ctx.strokeStyle = `rgba(255,215,0,${0.65 + 0.35 * pulse})`;
+  ctx.lineWidth   = 3;
+  roundRect(ctx, x, y, w, h, 18);
+  ctx.stroke();
+  ctx.shadowBlur  = 0;
+
+  ctx.font         = '600 10px Inter, sans-serif';
+  ctx.fillStyle    = 'rgba(255,255,255,0.5)';
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('⚽   TEAM DRAWN!   ⚽', CX, y + 26);
+
+  const nameFontSize = team.length > 14 ? 30 : team.length > 10 ? 36 : 42;
+  ctx.font        = `bold ${nameFontSize}px 'Bebas Neue', cursive`;
+  ctx.fillStyle   = '#FFD700';
+  ctx.shadowColor = `rgba(255,215,0,${0.7 * pulse})`;
+  ctx.shadowBlur  = 14;
+  ctx.fillText(team.toUpperCase(), CX, y + 72);
+  ctx.shadowBlur  = 0;
+
+  ctx.font      = '500 13px Inter, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.78)';
+  ctx.fillText(`Assigned to ${player}`, CX, y + 110);
+
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+function drawAnnounceOverlay(playerName, teamNum, totalTeams, t) {
+  const fadeIn  = Math.min(1, t / 0.2);
+  const fadeOut = t > 0.78 ? Math.max(0, 1 - (t - 0.78) / 0.22) : 1;
+  const alpha   = fadeIn * fadeOut;
+  const pulse   = 0.5 + 0.5 * Math.sin(t * Math.PI * 5);
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  const w = 370, h = 130;
+  const x = CX - w / 2, y = CY - h / 2;
+
+  ctx.fillStyle = 'rgba(0,22,5,0.92)';
+  roundRect(ctx, x, y, w, h, 18);
+  ctx.fill();
+
+  ctx.shadowColor = `rgba(74,222,128,${0.5 * pulse})`;
+  ctx.shadowBlur  = 14;
+  ctx.strokeStyle = `rgba(74,222,128,${0.55 + 0.45 * pulse})`;
+  ctx.lineWidth   = 2.5;
+  roundRect(ctx, x, y, w, h, 18);
+  ctx.stroke();
+  ctx.shadowBlur  = 0;
+
+  ctx.font         = '600 10px Inter, sans-serif';
+  ctx.fillStyle    = 'rgba(255,255,255,0.48)';
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('NOW DRAWING FOR', CX, y + 28);
+
+  const pFontSize = playerName.length > 16 ? 26 : playerName.length > 12 ? 30 : 35;
+  ctx.font        = `bold ${pFontSize}px 'Bebas Neue', cursive`;
+  ctx.fillStyle   = '#4ade80';
+  ctx.shadowColor = 'rgba(74,222,128,0.6)';
+  ctx.shadowBlur  = 12;
+  ctx.fillText(playerName.toUpperCase(), CX, y + 72);
+  ctx.shadowBlur  = 0;
+
+  ctx.font      = '500 11px Inter, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.fillText(`Team ${teamNum} of ${totalTeams}`, CX, y + 105);
+
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+function drawIdleScreen() {
+  ctx.clearRect(0, 0, CW, CH);
+  drawBg();
+  const n = 48, seg = (2 * Math.PI) / n;
+  ctx.save();
+  ctx.translate(CX, CY);
+  for (let i = 0; i < n; i++) {
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.arc(0, 0, WRAD, i * seg, (i + 1) * seg);
+    ctx.closePath();
+    ctx.fillStyle = `hsla(${(i * 137.508) % 360},55%,30%,0.5)`;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(WRAD * Math.cos(i * seg), WRAD * Math.sin(i * seg));
+    ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.arc(0, 0, WRAD, 0, 2 * Math.PI);
+  ctx.strokeStyle = 'rgba(255,215,0,0.35)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.restore();
+  drawCenterCap();
+  drawPointer();
+  drawWatermark();
+  ctx.save();
+  ctx.font = `bold 13px 'Bebas Neue', cursive`;
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('ENTER TEAMS & PLAYERS TO BEGIN', CX, CY + WRAD / 2 + 20);
+  ctx.restore();
+}
+
+/* ═══════════════════════════════════════════
+   ANNOUNCE PHASE
+   Shows which player is about to be drawn for,
+   and which of their teams this is (round number)
+═══════════════════════════════════════════ */
+function startAnnounce() {
+  cancelAnimationFrame(announceRaf);
+  S.phase = 'announce';
+  updateSpinBtn();
+  updateCPBox();
+  updateQueuePanel();
+  updateResultsPanel();
+
+  const player  = S.players[curPlayerIdx()];
+  const teamNum = curRoundNum();   // which of their tpp teams they're getting
+  const total   = S.tpp;
+  const duration = 1800;
+  const startTime = performance.now();
+
+  function frame(now) {
+    const t = Math.min((now - startTime) / duration, 1);
+    drawWheel();
+    drawAnnounceOverlay(player, teamNum, total, t);
+    if (t < 1) {
+      announceRaf = requestAnimationFrame(frame);
+    } else {
+      S.phase = 'ready';
+      drawWheel();
+      updateSpinBtn();
+      if (autoSpin) setTimeout(() => spin(), 150);
+    }
+  }
+  announceRaf = requestAnimationFrame(frame);
+}
+
+/* ═══════════════════════════════════════════
+   SPIN LOGIC
+═══════════════════════════════════════════ */
+function easeOut(t) { return 1 - Math.pow(1 - t, 5); }
+
+function spin() {
+  if (S.phase !== 'ready') return;
+  S.phase = 'spinning';
+  updateSpinBtn();
+
+  const n   = S.remaining.length;
+  const seg = (2 * Math.PI) / n;
+
+  const targetIdx    = Math.floor(Math.random() * n);
+  S.winnerIdx        = targetIdx;
+
+  const targetMod    = (((-Math.PI / 2) - targetIdx * seg - seg / 2) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+  const minSpins     = 5 + Math.floor(Math.random() * 4);
+  const extraRounds  = Math.ceil((S.rotation + minSpins * 2 * Math.PI - targetMod) / (2 * Math.PI));
+  const finalRotation = targetMod + extraRounds * 2 * Math.PI;
+
+  const startRotation = S.rotation;
+  const diff          = finalRotation - startRotation;
+  const duration      = 4200 + Math.random() * 2400;
+  const startTime     = performance.now();
+
+  let lastTickIdx = -1;
+  const audioCtx  = getAudioCtx();
+
+  function frame(now) {
+    const elapsed = now - startTime;
+    const t       = Math.min(elapsed / duration, 1);
+    S.rotation    = startRotation + diff * easeOut(t);
+    drawWheel();
+
+    if (audioCtx) {
+      const curIdx = getTeamAtPointer();
+      if (curIdx !== lastTickIdx) { playTick(audioCtx, t); lastTickIdx = curIdx; }
+    }
+    if (t < 1) requestAnimationFrame(frame);
+    else { S.rotation = finalRotation; onSpinEnd(targetIdx); }
+  }
+  requestAnimationFrame(frame);
+}
+
+function getTeamAtPointer() {
+  const n = S.remaining.length;
+  if (n === 0) return -1;
+  const seg   = (2 * Math.PI) / n;
+  let   angle = ((-Math.PI / 2 - S.rotation) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+  return Math.floor(angle / seg) % n;
+}
+
+function onSpinEnd(winnerIdx) {
+  const team   = S.remaining[winnerIdx];
+  const player = S.players[curPlayerIdx()];
+
+  S.assignments[player].push(team);
+  S.resultTeam   = team;
+  S.resultPlayer = player;
+
+  updateResultsPanel();
+  S.phase = 'result';
+  updateSpinBtn();
+
+  // Pulse + result overlay on canvas
+  S.pulseT = 0;
+  cancelAnimationFrame(S.pulseRaf);
+  let pulseStart = null;
+
+  function pulseFrame(t) {
+    if (!pulseStart) pulseStart = t;
+    S.pulseT = (t - pulseStart) / 1000;
+    drawWheel(winnerIdx, S.pulseT);
+    drawResultOverlay(team, player, S.pulseT);
+    if (S.pulseT < 2.8) S.pulseRaf = requestAnimationFrame(pulseFrame);
+  }
+  S.pulseRaf = requestAnimationFrame(pulseFrame);
+
+  setTimeout(() => {
+    cancelAnimationFrame(S.pulseRaf);
+    S.remaining.splice(winnerIdx, 1);
+    S.rotation     = 0;
+    S.resultTeam   = '';
+    S.resultPlayer = '';
+
+    // Advance to the next spin in round-robin order
+    S.spinIndex++;
+
+    if (S.spinIndex >= S.totalSpins || S.remaining.length === 0) {
+      S.phase = 'complete';
+      drawWheel();
+      updateQueuePanel();
+      updateResultsPanel();
+      showComplete();
+    } else {
+      updateRemText();
+      startAnnounce();
+    }
+  }, 3000);
+}
+
+/* ═══════════════════════════════════════════
+   AUDIO
+═══════════════════════════════════════════ */
+let _audioCtx = null;
+function getAudioCtx() {
+  try {
+    if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return _audioCtx;
+  } catch(e) { return null; }
+}
+function playTick(ac, progress) {
+  try {
+    const osc  = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.connect(gain);
+    gain.connect(ac.destination);
+    osc.frequency.value = 600 + (1 - progress) * 800;
+    gain.gain.value = 0.08;
+    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.04);
+    osc.start(ac.currentTime);
+    osc.stop(ac.currentTime + 0.04);
+  } catch(e) {}
+}
+
+/* ═══════════════════════════════════════════
+   UI HELPERS
+═══════════════════════════════════════════ */
+function updateCPBox() {
+  const p   = S.players[curPlayerIdx()] || '—';
+  const rnd = curRoundNum();
+  document.getElementById('cpName').textContent  = p;
+  document.getElementById('cpCount').textContent = `${rnd} / ${S.tpp}`;
+}
+
+function updateRemText() {
+  document.getElementById('remText').textContent =
+    `${S.remaining.length} team${S.remaining.length !== 1 ? 's' : ''} remaining on wheel`;
+}
+
+function updateSpinBtn() {
+  const btn = document.getElementById('spinBtn');
+  if (S.phase === 'ready') {
+    btn.disabled    = autoSpin;
+    btn.textContent = 'SPIN ⚽';
+  } else if (S.phase === 'spinning') {
+    btn.disabled    = true;
+    btn.textContent = 'SPINNING…';
+  } else if (S.phase === 'result') {
+    btn.disabled    = true;
+    btn.textContent = 'RESULT…';
+  } else if (S.phase === 'announce') {
+    btn.disabled    = true;
+    btn.textContent = 'GET READY…';
+  } else {
+    btn.disabled    = true;
+    btn.textContent = 'SPIN ⚽';
+  }
+  document.getElementById('autoBtn').disabled = (S.phase === 'complete');
+}
+
+function updateAutoBtn() {
+  const btn = document.getElementById('autoBtn');
+  if (autoSpin) {
+    btn.textContent = '⏸ Auto: ON';
+    btn.className   = 'btn btn-auto-on btn-sm';
+  } else {
+    btn.textContent = '▶▶ Auto Spin: OFF';
+    btn.className   = 'btn btn-ghost btn-sm';
+  }
+}
+
+function showComplete() {
+  document.getElementById('completeBanner').style.display = 'block';
+  document.getElementById('spinBtn').style.display        = 'none';
+  document.getElementById('autoBtn').style.display        = 'none';
+  document.getElementById('remText').textContent          = '🏆 All teams assigned!';
+  document.getElementById('exportBtn').disabled           = false;
+  document.getElementById('copyBtn').disabled             = false;
+}
+
+/* ═══════════════════════════════════════════
+   QUEUE PANEL
+═══════════════════════════════════════════ */
+function buildQueuePanel() {
+  const el = document.getElementById('playerQueue');
+  el.innerHTML = '';
+  S.players.forEach((p, i) => {
+    const div = document.createElement('div');
+    div.className = 'pq-item';
+    div.id        = `pq-${i}`;
+    div.innerHTML = `
+      <div class="pq-num">${i + 1}</div>
+      <div class="pq-name">${escHtml(p)}</div>
+      <div class="pq-progress" id="pq-prog-${i}">0/${S.tpp}</div>`;
+    el.appendChild(div);
+  });
+  updateQueuePanel();
+}
+
+function updateQueuePanel() {
+  const cur = curPlayerIdx();
+  S.players.forEach((p, i) => {
+    const item = document.getElementById(`pq-${i}`);
+    const prog = document.getElementById(`pq-prog-${i}`);
+    if (!item) return;
+    const got  = (S.assignments[p] || []).length;
+    item.className = 'pq-item' +
+      (i === cur && S.phase !== 'complete' ? ' active' : (got >= S.tpp ? ' done' : ''));
+    if (prog) prog.textContent = `${got}/${S.tpp}`;
+  });
+}
+
+/* ═══════════════════════════════════════════
+   RESULTS PANEL
+═══════════════════════════════════════════ */
+function buildResultsPanel() {
+  const el = document.getElementById('resultsList');
+  el.innerHTML = '';
+  S.players.forEach((p, i) => {
+    const card = document.createElement('div');
+    card.className = 'p-card';
+    card.id        = `rc-${i}`;
+    card.innerHTML = `<div class="p-card-name">${escHtml(p)}</div><div class="chips" id="rc-chips-${i}"></div>`;
+    el.appendChild(card);
+  });
+  updateResultsPanel();
+}
+
+function updateResultsPanel() {
+  const cur = curPlayerIdx();
+  S.players.forEach((p, i) => {
+    const card  = document.getElementById(`rc-${i}`);
+    const chips = document.getElementById(`rc-chips-${i}`);
+    if (!card || !chips) return;
+    card.className = 'p-card' + (i === cur && S.phase !== 'complete' ? ' active' : '');
+    const got = S.assignments[p] || [];
+    let html  = got.map(t => `<span class="chip">${escHtml(t)}</span>`).join('');
+    for (let j = got.length; j < S.tpp; j++) html += `<span class="chip-empty">···</span>`;
+    chips.innerHTML = html;
+  });
+}
+
+/* ═══════════════════════════════════════════
+   SETUP VALIDATION
+═══════════════════════════════════════════ */
+function onSetupChange() {
+  const teams   = getTeams();
+  const players = getPlayers();
+  const tpp     = parseInt(document.getElementById('tppInput').value) || 0;
+
+  document.getElementById('teamsCount').textContent =
+    `${teams.length} team${teams.length !== 1 ? 's' : ''} entered`;
+
+  const total = players.length * tpp;
+  const warn  = document.getElementById('setupWarn');
+  const info  = document.getElementById('calcInfo');
+  info.textContent = `${players.length} × ${tpp} = ${total} spins`;
+
+  if (total === 0) {
+    warn.textContent = '';
+    warn.className   = 'info-text';
+  } else if (total === teams.length) {
+    warn.textContent = `✓ Perfect — all ${teams.length} teams will be assigned`;
+    warn.className   = 'info-text ok';
+  } else if (total < teams.length) {
+    warn.textContent = `${teams.length - total} team${teams.length - total !== 1 ? 's' : ''} will not be drawn`;
+    warn.className   = 'info-text warn';
+  } else {
+    warn.textContent = `⚠ ${total} spins but only ${teams.length} teams — reduce players or teams-per-player`;
+    warn.className   = 'info-text warn';
+  }
+}
+
+function getTeams()   { return document.getElementById('teamsInput').value.split('\n').map(l => l.trim()).filter(Boolean); }
+function getPlayers() { return document.getElementById('playersInput').value.split('\n').map(l => l.trim()).filter(Boolean); }
+
+/* ═══════════════════════════════════════════
+   START DRAW
+═══════════════════════════════════════════ */
+function startDraw() {
+  const teams   = getTeams();
+  const players = getPlayers();
+  const tpp     = parseInt(document.getElementById('tppInput').value) || 1;
+
+  if (teams.length === 0)   { alert('Please enter at least one team.'); return; }
+  if (players.length === 0) { alert('Please enter at least one player.'); return; }
+  if (players.length * tpp > teams.length) {
+    alert(`Too many spins!\n${players.length} players × ${tpp} = ${players.length * tpp} but only ${teams.length} teams available.`);
+    return;
+  }
+
+  const shuffled  = [...teams].sort(() => Math.random() - 0.5);
+  S.teams         = shuffled;
+  S.remaining     = [...shuffled];
+  S.players       = players;
+  S.tpp           = tpp;
+  S.totalSpins    = players.length * tpp;
+  S.assignments   = {};
+  players.forEach(p => { S.assignments[p] = []; });
+  S.spinIndex     = 0;
+  S.rotation      = 0;
+  S.winnerIdx     = -1;
+  S.resultTeam    = '';
+  S.resultPlayer  = '';
+
+  document.getElementById('setupScreen').style.display    = 'none';
+  document.getElementById('drawScreen').style.display     = 'block';
+  document.getElementById('completeBanner').style.display = 'none';
+  document.getElementById('spinBtn').style.display        = 'block';
+  document.getElementById('autoBtn').style.display        = 'block';
+  document.getElementById('exportBtn').disabled           = true;
+  document.getElementById('copyBtn').disabled             = true;
+
+  buildQueuePanel();
+  buildResultsPanel();
+  updateRemText();
+  updateAutoBtn();
+  drawWheel();
+  startAnnounce();
+}
+
+/* ═══════════════════════════════════════════
+   RESET
+═══════════════════════════════════════════ */
+function resetDraw() {
+  if (!confirm('Reset the draw and go back to setup?')) return;
+  cancelAnimationFrame(S.pulseRaf);
+  cancelAnimationFrame(announceRaf);
+  if (mediaRecorder && isRecording) { mediaRecorder.stop(); isRecording = false; }
+  S.phase = 'setup';
+  document.getElementById('drawScreen').style.display  = 'none';
+  document.getElementById('setupScreen').style.display = 'block';
+  drawIdleScreen();
+}
+
+/* ═══════════════════════════════════════════
+   VIDEO RECORDING  (MediaRecorder)
+   Tries MP4 first (Chrome 130+), falls back to WebM
+═══════════════════════════════════════════ */
+function bestMime() {
+  const candidates = [
+    'video/mp4;codecs=avc1',
+    'video/mp4;codecs=h264',
+    'video/mp4',
+    'video/webm;codecs=vp9',
+    'video/webm',
+  ];
+  return candidates.find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
+}
+
+function startRecording() {
+  if (isRecording) return;
+  try {
+    const stream = canvas.captureStream(30);
+    const mime   = bestMime();
+    mediaRecorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 4_000_000 });
+    recChunks     = [];
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recChunks.push(e.data); };
+    mediaRecorder.start(200);
+    isRecording = true;
+    document.getElementById('recStartBtn').disabled = true;
+    document.getElementById('recStopBtn').disabled  = false;
+    document.getElementById('recIndicator').classList.add('show');
+  } catch(e) {
+    alert('Recording not supported in this browser.\nPlease use Chrome or Edge.\n\n' + e.message);
+  }
+}
+
+function stopRecording() {
+  if (!mediaRecorder || !isRecording) return;
+  mediaRecorder.onstop = () => {
+    const mime   = mediaRecorder.mimeType || 'video/webm';
+    const isMP4  = mime.startsWith('video/mp4');
+    const blob   = new Blob(recChunks, { type: mime });
+    const url    = URL.createObjectURL(blob);
+    const a      = document.createElement('a');
+    a.href       = url;
+    a.download   = isMP4 ? 'WC2026-Sweepstake-Draw.mp4' : 'WC2026-Sweepstake-Draw.webm';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  mediaRecorder.stop();
+  isRecording = false;
+  document.getElementById('recStartBtn').disabled    = false;
+  document.getElementById('recStopBtn').disabled     = true;
+  document.getElementById('recIndicator').classList.remove('show');
+}
+
+/* ═══════════════════════════════════════════
+   EXCEL EXPORT
+═══════════════════════════════════════════ */
+function exportExcel() {
+  const wb      = XLSX.utils.book_new();
+  const headers = ['Player', ...Array.from({length: S.tpp}, (_, i) => `Team ${i + 1}`)];
+  const rows    = [headers];
+  S.players.forEach(p => {
+    const teams = S.assignments[p] || [];
+    rows.push([p, ...teams, ...Array(S.tpp - teams.length).fill('')]);
+  });
+  const ws1 = XLSX.utils.aoa_to_sheet(rows);
+  ws1['!cols'] = headers.map((_, i) => ({ wch: i === 0 ? 22 : 18 }));
+  XLSX.utils.book_append_sheet(wb, ws1, 'Draw Results');
+
+  const flat = [['Player', 'Team']];
+  S.players.forEach(p => { (S.assignments[p] || []).forEach(t => flat.push([p, t])); });
+  const ws2 = XLSX.utils.aoa_to_sheet(flat);
+  ws2['!cols'] = [{ wch: 22 }, { wch: 20 }];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Full List');
+  XLSX.writeFile(wb, 'WC2026-Sweepstake.xlsx');
+}
+
+/* ═══════════════════════════════════════════
+   COPY TO CLIPBOARD
+═══════════════════════════════════════════ */
+function copyResults() {
+  const lines = S.players.map(p => `${p}: ${(S.assignments[p] || []).join(', ')}`);
+  navigator.clipboard.writeText(lines.join('\n')).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => { btn.textContent = '📋 Copy'; }, 2000);
+  });
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ═══════════════════════════════════════════
+   EVENT LISTENERS
+═══════════════════════════════════════════ */
+document.getElementById('teamsInput').addEventListener('input', onSetupChange);
+document.getElementById('playersInput').addEventListener('input', onSetupChange);
+document.getElementById('tppInput').addEventListener('input', onSetupChange);
+document.getElementById('startBtn').addEventListener('click', startDraw);
+document.getElementById('prefillBtn').addEventListener('click', () => {
+  document.getElementById('teamsInput').value = WC2026_TEAMS.join('\n');
+  onSetupChange();
+});
+document.getElementById('spinBtn').addEventListener('click', spin);
+document.getElementById('wheelCanvas').addEventListener('click', () => { if (S.phase === 'ready') spin(); });
+document.getElementById('resetBtn').addEventListener('click', resetDraw);
+document.getElementById('recStartBtn').addEventListener('click', startRecording);
+document.getElementById('recStopBtn').addEventListener('click', stopRecording);
+document.getElementById('exportBtn').addEventListener('click', exportExcel);
+document.getElementById('copyBtn').addEventListener('click', copyResults);
+
+document.getElementById('autoBtn').addEventListener('click', () => {
+  autoSpin = !autoSpin;
+  updateAutoBtn();
+  updateSpinBtn();
+  if (autoSpin && S.phase === 'ready') setTimeout(() => spin(), 200);
+});
+
+/* ═══════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════ */
+drawIdleScreen();
+onSetupChange();
+</script>
+</body>
+</html>
