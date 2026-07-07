@@ -1,0 +1,250 @@
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+
+$form = New-Object System.Windows.Forms.Form
+$form.Text = "Data Retention Review Tool"
+$form.Size = New-Object System.Drawing.Size(1000,650)
+$form.StartPosition = "CenterScreen"
+
+$tabControl = New-Object System.Windows.Forms.TabControl
+$tabControl.Dock = "Fill"
+
+# --- Tab: Scan & Review ---
+$tabScan = New-Object System.Windows.Forms.TabPage
+$tabScan.Text = "Scan & Review"
+
+# --- Top controls panel ---
+$topPanel = New-Object System.Windows.Forms.Panel
+$topPanel.Dock = "Top"
+$topPanel.Height = 115
+
+$lblFolder = New-Object System.Windows.Forms.Label
+$lblFolder.Text = "Folder:"
+$lblFolder.Location = New-Object System.Drawing.Point(10,15)
+$lblFolder.AutoSize = $true
+
+$txtFolder = New-Object System.Windows.Forms.TextBox
+$txtFolder.Location = New-Object System.Drawing.Point(70,12)
+$txtFolder.Width = 520
+
+$btnBrowse = New-Object System.Windows.Forms.Button
+$btnBrowse.Text = "Browse..."
+$btnBrowse.Location = New-Object System.Drawing.Point(600,10)
+
+$lblDateField = New-Object System.Windows.Forms.Label
+$lblDateField.Text = "Date field:"
+$lblDateField.Location = New-Object System.Drawing.Point(10,50)
+$lblDateField.AutoSize = $true
+
+$cmbDateField = New-Object System.Windows.Forms.ComboBox
+$cmbDateField.Location = New-Object System.Drawing.Point(90,47)
+$cmbDateField.Width = 190
+$cmbDateField.DropDownStyle = "DropDownList"
+$cmbDateField.Items.AddRange(@("LastWriteTime (Modified)","CreationTime (Created)","LastAccessTime (Accessed)"))
+$cmbDateField.SelectedIndex = 0
+
+$lblCutoff = New-Object System.Windows.Forms.Label
+$lblCutoff.Text = "Flag files older than:"
+$lblCutoff.Location = New-Object System.Drawing.Point(300,50)
+$lblCutoff.AutoSize = $true
+
+$dtCutoff = New-Object System.Windows.Forms.DateTimePicker
+$dtCutoff.Location = New-Object System.Drawing.Point(440,47)
+$dtCutoff.Width = 130
+$dtCutoff.Format = "Short"
+$dtCutoff.Value = (Get-Date).AddYears(-7)
+
+$btnScan = New-Object System.Windows.Forms.Button
+$btnScan.Text = "Start Scan"
+$btnScan.Location = New-Object System.Drawing.Point(10,82)
+$btnScan.Width = 100
+
+$progressBar = New-Object System.Windows.Forms.ProgressBar
+$progressBar.Location = New-Object System.Drawing.Point(120,84)
+$progressBar.Width = 400
+$progressBar.Style = "Marquee"
+$progressBar.Visible = $false
+
+$lblStatus = New-Object System.Windows.Forms.Label
+$lblStatus.Location = New-Object System.Drawing.Point(540,88)
+$lblStatus.AutoSize = $true
+$lblStatus.Text = ""
+
+$topPanel.Controls.AddRange(@($lblFolder,$txtFolder,$btnBrowse,$lblDateField,$cmbDateField,$lblCutoff,$dtCutoff,$btnScan,$progressBar,$lblStatus))
+
+# --- Grid ---
+$dataGrid = New-Object System.Windows.Forms.DataGridView
+$dataGrid.Dock = "Fill"
+$dataGrid.ReadOnly = $true
+$dataGrid.AutoSizeColumnsMode = "Fill"
+$dataGrid.AllowUserToAddRows = $false
+$dataGrid.RowHeadersVisible = $false
+
+# --- Bottom panel ---
+$bottomPanel = New-Object System.Windows.Forms.Panel
+$bottomPanel.Dock = "Bottom"
+$bottomPanel.Height = 65
+
+$lblSummary = New-Object System.Windows.Forms.Label
+$lblSummary.Location = New-Object System.Drawing.Point(10,8)
+$lblSummary.AutoSize = $true
+$lblSummary.Text = "No scan yet."
+$lblSummary.Font = New-Object System.Drawing.Font($lblSummary.Font, [System.Drawing.FontStyle]::Bold)
+
+$btnExportAll = New-Object System.Windows.Forms.Button
+$btnExportAll.Text = "Export All to CSV"
+$btnExportAll.Location = New-Object System.Drawing.Point(10,32)
+$btnExportAll.Width = 150
+
+$btnExportFlagged = New-Object System.Windows.Forms.Button
+$btnExportFlagged.Text = "Export Flagged Only to CSV"
+$btnExportFlagged.Location = New-Object System.Drawing.Point(170,32)
+$btnExportFlagged.Width = 190
+
+$bottomPanel.Controls.AddRange(@($lblSummary,$btnExportAll,$btnExportFlagged))
+
+$tabScan.Controls.AddRange(@($dataGrid,$topPanel,$bottomPanel))
+$tabControl.TabPages.Add($tabScan)
+$form.Controls.Add($tabControl)
+
+# --- State ---
+$script:allData = $null
+$script:job = $null
+$script:timer = New-Object System.Windows.Forms.Timer
+$script:timer.Interval = 500
+
+function Set-GridData {
+    param($data)
+    $script:allData = $data
+    $dataGrid.DataSource = [System.Collections.ArrayList]$data
+
+    if ($dataGrid.Columns["FullPath"]) { $dataGrid.Columns["FullPath"].Visible = $false }
+
+    foreach ($row in $dataGrid.Rows) {
+        if ($row.Cells["Flagged"].Value -eq $true) {
+            $row.DefaultCellStyle.BackColor = [System.Drawing.Color]::MistyRose
+        }
+    }
+
+    $flagged = @($data | Where-Object { $_.Flagged })
+    $flaggedSizeMB = 0
+    if ($flagged.Count -gt 0) {
+        $flaggedSizeMB = ($flagged | Measure-Object -Property SizeKB -Sum).Sum / 1024
+    }
+    $lblSummary.Text = "Total files: $($data.Count)   |   Flagged for review: $($flagged.Count)   ($([math]::Round($flaggedSizeMB,1)) MB)"
+}
+
+$btnBrowse.Add_Click({
+    $folderDialog = New-Object System.Windows.Forms.FolderBrowserDialog
+    if ($folderDialog.ShowDialog() -eq "OK") {
+        $txtFolder.Text = $folderDialog.SelectedPath
+    }
+})
+
+$btnScan.Add_Click({
+    if (-not (Test-Path $txtFolder.Text)) {
+        [System.Windows.Forms.MessageBox]::Show("Please select a valid folder.")
+        return
+    }
+
+    $dateFieldMap = @{
+        "LastWriteTime (Modified)"  = "LastWriteTime"
+        "CreationTime (Created)"    = "CreationTime"
+        "LastAccessTime (Accessed)" = "LastAccessTime"
+    }
+    $dateField  = $dateFieldMap[$cmbDateField.SelectedItem.ToString()]
+    $cutoffDate = $dtCutoff.Value
+    $folderPath = $txtFolder.Text
+
+    $btnScan.Enabled = $false
+    $btnExportAll.Enabled = $false
+    $btnExportFlagged.Enabled = $false
+    $progressBar.Visible = $true
+    $lblStatus.Text = "Scanning... this may take a while for large folders."
+
+    $scriptBlock = {
+        param($FolderPath, $DateField, $CutoffDate)
+        Get-ChildItem -Path $FolderPath -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
+            $owner = try { (Get-Acl $_.FullName -ErrorAction Stop).Owner } catch { "N/A" }
+            $dateVal = $_.$DateField
+            [PSCustomObject]@{
+                Name         = $_.Name
+                Folder       = $_.DirectoryName
+                Extension    = $_.Extension
+                SizeKB       = [math]::Round($_.Length / 1KB, 1)
+                Created      = $_.CreationTime
+                LastModified = $_.LastWriteTime
+                LastAccessed = $_.LastAccessTime
+                Owner        = $owner
+                AgeDays      = [math]::Round((New-TimeSpan -Start $dateVal -End (Get-Date)).TotalDays,0)
+                Flagged      = [bool]($dateVal -lt $CutoffDate)
+                FullPath     = $_.FullName
+            }
+        }
+    }
+
+    $script:job = Start-Job -ScriptBlock $scriptBlock -ArgumentList $folderPath, $dateField, $cutoffDate
+
+    $script:timer.Remove_Tick($script:timerHandler) 2>$null
+
+    $script:timerHandler = {
+        if ($script:job.State -eq "Completed") {
+            $script:timer.Stop()
+            $result = @(Receive-Job -Job $script:job)
+            Remove-Job -Job $script:job -Force
+            $progressBar.Visible = $false
+            $btnScan.Enabled = $true
+            $btnExportAll.Enabled = $true
+            $btnExportFlagged.Enabled = $true
+            Set-GridData -data $result
+            $lblStatus.Text = if ($result.Count -gt 0) { "Scan complete." } else { "No files found." }
+        }
+        elseif ($script:job.State -eq "Failed") {
+            $script:timer.Stop()
+            $errMsg = (Receive-Job -Job $script:job 2>&1 | Out-String)
+            Remove-Job -Job $script:job -Force
+            $progressBar.Visible = $false
+            $btnScan.Enabled = $true
+            $lblStatus.Text = "Scan failed."
+            [System.Windows.Forms.MessageBox]::Show("Scan failed: $errMsg")
+        }
+    }
+    $script:timer.Add_Tick($script:timerHandler)
+    $script:timer.Start()
+})
+
+$btnExportAll.Add_Click({
+    if (-not $script:allData -or $script:allData.Count -eq 0) {
+        [System.Windows.Forms.MessageBox]::Show("No data to export. Run a scan first.")
+        return
+    }
+    $saveDialog = New-Object System.Windows.Forms.SaveFileDialog
+    $saveDialog.Filter = "CSV files (*.csv)|*.csv"
+    $saveDialog.FileName = "FolderInventory_All.csv"
+    if ($saveDialog.ShowDialog() -eq "OK") {
+        $script:allData | Export-Csv -Path $saveDialog.FileName -NoTypeInformation
+        [System.Windows.Forms.MessageBox]::Show("Exported $($script:allData.Count) rows.")
+    }
+})
+
+$btnExportFlagged.Add_Click({
+    if (-not $script:allData -or $script:allData.Count -eq 0) {
+        [System.Windows.Forms.MessageBox]::Show("No data to export. Run a scan first.")
+        return
+    }
+    $flagged = @($script:allData | Where-Object { $_.Flagged })
+    if ($flagged.Count -eq 0) {
+        [System.Windows.Forms.MessageBox]::Show("No flagged files to export.")
+        return
+    }
+    $saveDialog = New-Object System.Windows.Forms.SaveFileDialog
+    $saveDialog.Filter = "CSV files (*.csv)|*.csv"
+    $saveDialog.FileName = "FolderInventory_Flagged.csv"
+    if ($saveDialog.ShowDialog() -eq "OK") {
+        $flagged | Export-Csv -Path $saveDialog.FileName -NoTypeInformation
+        [System.Windows.Forms.MessageBox]::Show("Exported $($flagged.Count) flagged rows.")
+    }
+})
+
+$form.Add_Shown({ $form.Activate() })
+[void]$form.ShowDialog()
