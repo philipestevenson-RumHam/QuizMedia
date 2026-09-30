@@ -326,16 +326,19 @@ async function continuationParts(blob){
   document.body.appendChild(probe);
   try{
     await docx.renderAsync(await zip.generateAsync({type:'blob'}),probe,null,{className:'docx',breakPages:true});
-    const s=probe.querySelector('section.docx');
-    return {header:s?.querySelector(':scope>header')?.cloneNode(true)||null,
-            footer:s?.querySelector(':scope>footer')?.cloneNode(true)||null};
+    // one entry per page, in the same order as the real render, so every page picks up
+    // the default header/footer of its own section
+    return [...probe.querySelectorAll('section.docx')].map(s=>({
+      header:s.querySelector(':scope>header')?.cloneNode(true)||null,
+      footer:s.querySelector(':scope>footer')?.cloneNode(true)||null}));
   }finally{probe.remove()}
 }
 
 function repaginate(box,parts){
   const wrap=box.querySelector('.docx-wrapper'); if(!wrap)return;
   const pages=[...wrap.querySelectorAll(':scope>section.docx')];
-  pages.forEach(page=>{
+  pages.forEach((page,pi)=>{
+    const own=parts[pi]||{};
     const article=page.querySelector(':scope>article'); if(!article)return;
     const blocks=[...article.children]; if(blocks.length<2)return;
 
@@ -343,9 +346,9 @@ function repaginate(box,parts){
     const mkPage=(useOwn)=>{
       const p=page.cloneNode(false); p.style.visibility='hidden';
       if(useOwn){const h=page.querySelector(':scope>header'); if(h)p.appendChild(h.cloneNode(true))}
-      else if(parts.header)p.appendChild(parts.header.cloneNode(true));
+      else if(own.header)p.appendChild(own.header.cloneNode(true));
       p.appendChild(article.cloneNode(false));
-      const f=useOwn?page.querySelector(':scope>footer'):parts.footer;
+      const f=useOwn?page.querySelector(':scope>footer'):own.footer;
       if(f)p.appendChild(f.cloneNode(true));
       return p;
     };
@@ -357,8 +360,13 @@ function repaginate(box,parts){
     let cur=mkPage(true); page.after(cur);
     let limit=limitOf(cur), art=cur.querySelector(':scope>article');
     const made=[cur];
-    blocks.forEach(b=>{
+    // Trailing blank paragraphs (e.g. the one holding a page break) must never spill onto
+    // a page of their own: they stay put, so no blank pages appear.
+    const hasContent=b=>!!b.innerText.trim()||!!b.querySelector('img,svg,canvas,table,hr,object');
+    let lastContent=-1; blocks.forEach((b,i)=>{if(hasContent(b))lastContent=i});
+    blocks.forEach((b,i)=>{
       art.appendChild(b);
+      if(i>lastContent&&lastContent>=0)return;
       const over=b.getBoundingClientRect().bottom+(parseFloat(getComputedStyle(b).marginBottom)||0)-cur.getBoundingClientRect().top>limit+0.5;
       if(over&&art.children.length>1){
         cur=mkPage(false); made[made.length-1].after(cur); made.push(cur);
