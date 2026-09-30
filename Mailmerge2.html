@@ -48,6 +48,9 @@ button:disabled{opacity:.4;cursor:not-allowed}
 .nav button{padding:6px 12px}
 #docxPreview{flex:1;min-height:0;overflow:auto;background:#7c8496;border-radius:0 0 12px 12px;padding:0}
 #docxPreview .docx-wrapper{background:transparent!important;padding:14px!important}
+/* Do not impose app layout rules on rendered Word content/tables. */
+#docxPreview section.docx table{table-layout:auto}
+#docxPreview section.docx img{max-width:none}
 .empty{color:#dfe3ec;text-align:center;padding:80px 20px;font-size:14px}
 @media(max-width:900px){
   body{overflow:auto}
@@ -324,7 +327,15 @@ async function showPreview(blob){
   await docx.renderAsync(blob,box,null,{
     className:'docx',
     breakPages:true,
-    ignoreLastRenderedPageBreak:false
+    ignoreLastRenderedPageBreak:false,
+    // Let docx-preview handle the Word section chrome itself.
+    // In particular, this preserves w:titlePg (Different First Page), so a
+    // taller first-page header changes the usable body area just as it does
+    // in Word. Do not replace headers after rendering.
+    renderHeaders:true,
+    renderFooters:true,
+    renderFootnotes:true,
+    renderEndnotes:true
   });
   fitPreview();
 }
