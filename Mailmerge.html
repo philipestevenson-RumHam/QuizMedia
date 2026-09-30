@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Phil's Easy Mailmerge</title>
+<style>
+:root{
+  --red:#e4002b; --red-dark:#b80022; --blue:#0d1b4c; --blue-soft:#eef1f8;
+  --green:#00a86b; --ink:#111; --muted:#5f6675; --line:#dfe3ec; --bg:#f4f6fa;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Helvetica,Arial,sans-serif;display:flex;flex-direction:column;overflow:hidden}
+header{background:#fff;border-bottom:3px solid var(--red);padding:10px 22px;display:flex;align-items:center;justify-content:space-between;flex:none}
+.brand{font-size:24px;letter-spacing:-.6px;font-weight:800;color:var(--red)}
+.brand span{font-weight:300;color:#000}
+.brand i{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--green);margin:0 8px 3px 4px}
+header small{color:var(--muted)}
+main{flex:1;min-height:0;display:grid;grid-template-columns:400px 1fr;gap:14px;padding:14px}
+.left{display:flex;flex-direction:column;gap:12px;min-height:0}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
+.grow{flex:1;min-height:0;display:flex;flex-direction:column}
+.scroll{overflow:auto;min-height:0;flex:1;padding-right:2px}
+h2{font-size:14px;margin:0 0 10px;color:var(--blue);text-transform:uppercase;letter-spacing:.5px}
+label{font-weight:700;font-size:12px;display:block;margin-bottom:5px;color:var(--blue)}
+input[type=file],input[type=number],input[type=text]{width:100%;padding:8px 10px;border:1px solid #c5cbd9;border-radius:8px;background:#fff;font:inherit;font-size:13px}
+input:focus{outline:2px solid #e4002b33;border-color:var(--red)}
+button{border:0;border-radius:8px;padding:10px 14px;cursor:pointer;font:inherit;font-weight:700;font-size:13px}
+button:disabled{opacity:.4;cursor:not-allowed}
+.primary{background:var(--red);color:#fff}.primary:hover:not(:disabled){background:var(--red-dark)}
+.secondary{background:var(--blue-soft);color:var(--blue)}.secondary:hover:not(:disabled){background:#e1e6f3}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.muted{color:var(--muted);font-size:12px;margin-top:6px}
+.status{padding:8px 10px;border-radius:8px;background:#eaf7f1;color:#0a5a3b;font-size:12px;margin-top:8px}
+.error{background:#fdecee;color:var(--red-dark)}
+.pills{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;max-height:64px;overflow:auto}
+.pill{background:var(--blue-soft);color:var(--blue);padding:3px 8px;border-radius:999px;font-size:11px;font-weight:700}
+.tabs{display:flex;gap:4px;background:var(--blue-soft);padding:3px;border-radius:9px;margin-bottom:12px;flex:none}
+.tabs button{flex:1;background:transparent;color:var(--blue);padding:8px}
+.tabs button.on{background:var(--red);color:#fff}
+#manualFields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.range{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.right{background:#fff;border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;min-height:0;min-width:0}
+.rhead{display:flex;align-items:center;justify-content:space-between;padding:10px 14px}
+.rhead h2{margin:0}
+.nav{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--blue)}
+.nav button{padding:6px 12px}
+#docxPreview{flex:1;min-height:0;overflow:auto;background:#7c8496;border-radius:0 0 12px 12px;padding:0}
+#docxPreview .docx-wrapper{background:transparent!important;padding:14px!important}
+.empty{color:#dfe3ec;text-align:center;padding:80px 20px;font-size:14px}
+@media(max-width:900px){
+  body{overflow:auto}
+  main{grid-template-columns:1fr}
+  .right{min-height:70vh}
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.7/dist/pizzip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docxtemplater@3.63.0/build/docxtemplater.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.5.3/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx-preview@0.3.7/dist/docx-preview.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+</head>
+<body>
+<header>
+  <div class="brand">Phil's<i></i><span>Easy Mailmerge</span></div>
+  <small>Word template + CSV → personalised letters</small>
+</header>
+
+<main>
+  <div class="left">
+    <section class="card">
+      <h2>1 · Word template</h2>
+      <input id="template" type="file" accept=".docx">
+      <div id="templateStatus" class="muted">Use [[Column Name]] fields in the document.</div>
+      <div id="fieldList" class="pills"></div>
+    </section>
+
+    <section class="card grow">
+      <h2>2 · Data</h2>
+      <div class="tabs">
+        <button type="button" id="tabCsv">CSV merge</button>
+        <button type="button" id="tabManual" class="on">One-off letter</button>
+      </div>
+
+      <div id="csvPanel" class="scroll" style="display:none">
+        <label for="csv">CSV file</label>
+        <input id="csv" type="file" accept=".csv,.txt">
+        <div class="row" style="margin-top:8px">
+          <button class="secondary" id="downloadCsvTemplate" type="button" disabled>Download CSV template</button>
+        </div>
+        <div id="dataStatus" class="status">No CSV loaded.</div>
+        <div id="rangeArea" style="display:none">
+          <div class="range">
+            <div><label>From row</label><input id="fromRow" type="number" min="1" value="1"></div>
+            <div><label>To row</label><input id="toRow" type="number" min="1" value="1"></div>
+          </div>
+          <div class="row" style="margin-top:8px"><button class="secondary" id="allRows" type="button">Use all rows</button></div>
+          <div class="muted">Rows count from 1 (header not counted).</div>
+        </div>
+      </div>
+
+      <div id="manualPanel" class="scroll">
+        <div id="manualEmpty" class="muted" style="margin:0 0 8px">Upload a template to see its fields.</div>
+        <div id="manualFields"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="row">
+        <button class="secondary" id="previewBtn" type="button" disabled>Preview</button>
+        <button class="primary" id="makeDocx" type="button" disabled>Download Word file</button>
+      </div>
+      <div id="outputStatus" class="muted">Ready when you are.</div>
+    </section>
+  </div>
+
+  <section class="right">
+    <div class="rhead">
+      <h2>Preview</h2>
+      <div class="nav">
+        <button class="secondary" id="firstBtn" type="button" disabled title="First">«</button>
+        <button class="secondary" id="prevBtn" type="button" disabled title="Previous">‹</button>
+        <span id="navLabel">–</span>
+        <button class="secondary" id="nextBtn" type="button" disabled title="Next">›</button>
+        <button class="secondary" id="lastBtn" type="button" disabled title="Last">»</button>
+      </div>
+    </div>
+    <div id="docxPreview"><div class="empty">Preview appears here</div></div>
+  </section>
+</main>
+
+<script>
+let templateBytes=null, templateName='template.docx', fields=[], rows=[], mode='manual';
+const $=id=>document.getElementById(id);
+const NS='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+const DOCX_MIME='application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const norm=s=>String(s).replace(/^\ufeff/,'').trim().toLowerCase();
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function decodeEntities(s){return s.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&')}
+function setStatus(el,msg,error=false){el.textContent=msg;el.className='status'+(error?' error':'')}
+function out(msg){$('outputStatus').textContent=msg}
+
+function extractFields(bytes){
+  const zip=new PizZip(bytes);
+  const names=Object.keys(zip.files).filter(n=>/^word\/(document|header\d*|footer\d*|footnotes|endnotes)\.xml$/.test(n));
+  let all='';
+  names.forEach(n=>{all+=zip.file(n).asText().replace(/<\/w:p>/g,'\n')});
+  const text=decodeEntities(all.replace(/<[^>]+>/g,''));
+  return [...new Set([...text.matchAll(/\[\[\s*([^\]\n]+?)\s*\]\]/g)].map(m=>m[1].trim()))];
+}
+
+function setMode(m){
+  mode=m;
+  $('csvPanel').style.display=m==='csv'?'block':'none';
+  $('manualPanel').style.display=m==='manual'?'block':'none';
+  $('tabCsv').classList.toggle('on',m==='csv');
+  $('tabManual').classList.toggle('on',m==='manual');
+}
+
+async function readTemplate(file){
+  try{
+    templateBytes=await file.arrayBuffer();
+    templateName=file.name;
+    fields=extractFields(templateBytes);
+  }catch(e){$('templateStatus').textContent='Could not read template: '+e.message;return}
+  $('templateStatus').textContent=`${file.name} • ${fields.length} field${fields.length===1?'':'s'} found`;
+  $('fieldList').innerHTML=fields.map(f=>`<span class="pill">${esc(f)}</span>`).join('');
+  renderManualFields();
+  $('downloadCsvTemplate').disabled=!fields.length;
+  $('makeDocx').disabled=false; $('previewBtn').disabled=false;
+  if(rows.length){setMode('csv');validateColumns()}
+}
+
+function renderManualFields(){
+  const box=$('manualFields'); box.innerHTML='';
+  $('manualEmpty').style.display=fields.length?'none':'block';
+  $('manualEmpty').textContent=templateBytes?'No [[field]] placeholders found in this template.':'Upload a template to see its fields.';
+  fields.forEach(f=>{
+    const w=document.createElement('div');
+    const l=document.createElement('label'); l.textContent=f;
+    const i=document.createElement('input'); i.type='text'; i.dataset.field=f;
+    w.append(l,i); box.append(w);
+  });
+}
+
+function parseCsv(file){
+  Papa.parse(file,{header:true,skipEmptyLines:true,
+    transformHeader:h=>String(h).replace(/^\ufeff/,'').trim(),
+    complete:r=>{
+      rows=r.data.map(x=>Object.fromEntries(Object.entries(x).map(([k,v])=>[k,v==null?'':String(v)])));
+      $('rangeArea').style.display='block';
+      $('fromRow').value=1; $('toRow').value=Math.max(1,rows.length);
+      setStatus($('dataStatus'),`${file.name} • ${rows.length} row${rows.length===1?'':'s'} • ${Object.keys(rows[0]||{}).length} columns`);
+      validateColumns();
+    },
+    error:e=>setStatus($('dataStatus'),'CSV could not be read: '+e.message,true)});
+}
+
+function validateColumns(){
+  if(!rows.length||!fields.length) return;
+  const cols=new Set(Object.keys(rows[0]).map(norm));
+  const missing=fields.filter(f=>!cols.has(norm(f)));
+  if(missing.length) setStatus($('dataStatus'),`Missing from CSV: ${missing.join(', ')}`,true);
+}
+
+function downloadCsvTemplate(){
+  if(!fields.length)return;
+  const csv='\ufeff'+fields.map(f=>`"${f.replace(/"/g,'""')}"`).join(',')+'\r\n';
+  saveAs(new Blob([csv],{type:'text/csv;charset=utf-8'}),templateName.replace(/\.docx$/i,'')+'-csv-template.csv');
+}
+
+function selectedRows(){
+  if(mode==='csv'){
+    if(!rows.length){alert('Upload a CSV first, or switch to One-off letter.');return[]}
+    let a=Math.max(1,parseInt($('fromRow').value)||1), b=Math.min(rows.length,parseInt($('toRow').value)||rows.length);
+    if(a>b)[a,b]=[b,a];
+    return rows.slice(a-1,b);
+  }
+  const o={}; document.querySelectorAll('#manualFields input').forEach(i=>o[i.dataset.field]=i.value);
+  return [o];
+}
+
+function renderOne(row){
+  const lk={}; Object.keys(row).forEach(k=>lk[norm(k)]=row[k]);
+  const data={}; fields.forEach(f=>data[f]=lk[norm(f)]??'');
+  const d=new window.docxtemplater(new PizZip(templateBytes),{
+    paragraphLoop:true,linebreaks:true,
+    delimiters:{start:'[[',end:']]'},
+    parser:tag=>({get:s=>s[tag.trim()]}),
+    nullGetter:()=>''
+  });
+  d.render(data);
+  return d.getZip();
+}
+
+function mergeDocx(dataRows){
+  const zips=dataRows.map(renderOne);
+  if(zips.length===1) return zips[0].generate({type:'blob',mimeType:DOCX_MIME});
+  return concatenateDocx(zips);
+}
+
+// Records after the first start on a new page via pageBreakBefore on their first
+// paragraph, so no spare blank paragraph/page is ever added.
+function concatenateDocx(zips){
+  const base=new PizZip(zips[0].generate({type:'uint8array'}));
+  const parser=new DOMParser(), ser=new XMLSerializer();
+  const baseXml=parser.parseFromString(base.file('word/document.xml').asText(),'application/xml');
+  const baseBody=baseXml.getElementsByTagName('w:body')[0];
+  const sect=[...baseBody.children].find(n=>n.localName==='sectPr')||null;
+  for(let i=1;i<zips.length;i++){
+    const x=new PizZip(zips[i].generate({type:'uint8array'}));
+    const xml=parser.parseFromString(x.file('word/document.xml').asText(),'application/xml');
+    const body=xml.getElementsByTagName('w:body')[0];
+    const nodes=[...body.children].filter(n=>n.localName!=='sectPr').map(n=>baseXml.importNode(n,true));
+    const first=nodes[0];
+    if(first&&first.localName==='p'){
+      let pPr=[...first.children].find(c=>c.localName==='pPr');
+      if(!pPr){pPr=baseXml.createElementNS(NS,'w:pPr');first.insertBefore(pPr,first.firstChild)}
+      if(![...pPr.children].some(c=>c.localName==='pageBreakBefore')){
+        const pb=baseXml.createElementNS(NS,'w:pageBreakBefore');
+        const prev=[...pPr.children].filter(c=>['pStyle','keepNext','keepLines'].includes(c.localName)).pop();
+        if(prev) prev.after(pb); else pPr.insertBefore(pb,pPr.firstChild);
+      }
+    }else{
+      const p=baseXml.createElementNS(NS,'w:p'), r=baseXml.createElementNS(NS,'w:r'), br=baseXml.createElementNS(NS,'w:br');
+      br.setAttributeNS(NS,'w:type','page'); r.appendChild(br); p.appendChild(r); nodes.unshift(p);
+    }
+    nodes.forEach(n=>baseBody.insertBefore(n,sect));
+  }
+  base.file('word/document.xml',ser.serializeToString(baseXml));
+  return base.generate({type:'blob',mimeType:DOCX_MIME});
+}
+
+async function showPreview(blob){
+  const box=$('docxPreview'); box.innerHTML='';
+  await docx.renderAsync(blob,box,null,{className:'docx',breakPages:true});
+  fitPreview();
+}
+function fitPreview(){
+  const box=$('docxPreview'), wrap=box.querySelector('.docx-wrapper'), sec=box.querySelector('section.docx');
+  if(!wrap||!sec)return;
+  wrap.style.zoom=1;
+  const z=Math.min(1,(box.clientWidth-30)/sec.offsetWidth);
+  wrap.style.zoom=z;
+}
+window.addEventListener('resize',fitPreview);
+
+let prevRows=[], prevIdx=0;
+
+function build(){
+  if(!templateBytes){alert('Choose a Word template first.');return null}
+  const data=selectedRows(); if(!data.length)return null;
+  try{
+    return {blob:mergeDocx(data),data,count:data.length};
+  }catch(e){
+    console.error(e);
+    out('Merge failed: '+(e.properties?.errors?.map(x=>x.properties?.explanation).join('; ')||e.message));
+    return null;
+  }
+}
+
+function updateNav(){
+  const n=prevRows.length;
+  $('navLabel').textContent=n?`Record ${prevIdx+1} of ${n}`:'–';
+  $('firstBtn').disabled=$('prevBtn').disabled=!n||prevIdx===0;
+  $('nextBtn').disabled=$('lastBtn').disabled=!n||prevIdx===n-1;
+}
+
+async function showRecord(i){
+  if(!prevRows.length)return;
+  prevIdx=Math.max(0,Math.min(prevRows.length-1,i));
+  updateNav();
+  try{await showPreview(mergeDocx([prevRows[prevIdx]]))}
+  catch(e){console.error(e);out('Preview failed, but the Word download should still work.')}
+}
+
+$('previewBtn').onclick=async()=>{
+  const data=selectedRows(); if(!data.length)return;
+  prevRows=data; await showRecord(0);
+  out(`Previewing ${data.length} record${data.length===1?'':'s'}`);
+};
+$('makeDocx').onclick=async()=>{
+  const r=build(); if(!r)return;
+  saveAs(r.blob,templateName.replace(/\.docx$/i,'')+'-merged.docx');
+  out(`Downloaded • ${r.count} record${r.count===1?'':'s'}`);
+  prevRows=r.data; await showRecord(0);
+};
+$('firstBtn').onclick=()=>showRecord(0);
+$('prevBtn').onclick=()=>showRecord(prevIdx-1);
+$('nextBtn').onclick=()=>showRecord(prevIdx+1);
+$('lastBtn').onclick=()=>showRecord(prevRows.length-1);
+document.addEventListener('keydown',e=>{
+  if(/INPUT|TEXTAREA/.test(document.activeElement.tagName))return;
+  if(e.key==='ArrowRight')showRecord(prevIdx+1);
+  if(e.key==='ArrowLeft')showRecord(prevIdx-1);
+});
+$('template').addEventListener('change',e=>{if(e.target.files[0])readTemplate(e.target.files[0])});
+$('csv').addEventListener('change',e=>{if(e.target.files[0])parseCsv(e.target.files[0])});
+$('allRows').onclick=()=>{$('fromRow').value=1;$('toRow').value=rows.length};
+$('downloadCsvTemplate').onclick=downloadCsvTemplate;
+$('tabCsv').onclick=()=>setMode('csv');
+$('tabManual').onclick=()=>setMode('manual');
+</script>
+</body>
+</html>
