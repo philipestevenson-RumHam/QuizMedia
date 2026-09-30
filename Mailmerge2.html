@@ -311,9 +311,71 @@ function concatenateDocx(zips){
   return base.generate({type:'blob',mimeType:DOCX_MIME});
 }
 
+// docx-preview only breaks pages at explicit page breaks and lets a page grow if its
+// content is taller. Word instead starts the body below the header (whichever is lower:
+// the top margin or the header's bottom edge), and breaks pages by content. Re-flow the
+// rendered blocks into fixed-size pages, giving each continuation page the default
+// header/footer, so the preview breaks where Word does.
+async function continuationParts(blob){
+  // same document without "different first page", so its first page shows the default header/footer
+  const zip=await JSZip.loadAsync(blob);
+  const xml=await zip.file('word/document.xml').async('string');
+  zip.file('word/document.xml',xml.replace(/<w:titlePg\b[^>]*\/>/g,''));
+  const probe=document.createElement('div');
+  probe.style.cssText='position:absolute;left:-99999px;top:0;visibility:hidden';
+  document.body.appendChild(probe);
+  try{
+    await docx.renderAsync(await zip.generateAsync({type:'blob'}),probe,null,{className:'docx',breakPages:true});
+    const s=probe.querySelector('section.docx');
+    return {header:s?.querySelector(':scope>header')?.cloneNode(true)||null,
+            footer:s?.querySelector(':scope>footer')?.cloneNode(true)||null};
+  }finally{probe.remove()}
+}
+
+function repaginate(box,parts){
+  const wrap=box.querySelector('.docx-wrapper'); if(!wrap)return;
+  const pages=[...wrap.querySelectorAll(':scope>section.docx')];
+  pages.forEach(page=>{
+    const article=page.querySelector(':scope>article'); if(!article)return;
+    const blocks=[...article.children]; if(blocks.length<2)return;
+
+    // A fresh, empty page tells us where the body area ends (footer top) for this page type.
+    const mkPage=(useOwn)=>{
+      const p=page.cloneNode(false); p.style.visibility='hidden';
+      if(useOwn){const h=page.querySelector(':scope>header'); if(h)p.appendChild(h.cloneNode(true))}
+      else if(parts.header)p.appendChild(parts.header.cloneNode(true));
+      p.appendChild(article.cloneNode(false));
+      const f=useOwn?page.querySelector(':scope>footer'):parts.footer;
+      if(f)p.appendChild(f.cloneNode(true));
+      return p;
+    };
+    const limitOf=p=>{
+      const top=p.getBoundingClientRect().top, f=p.querySelector(':scope>footer');
+      return f?f.getBoundingClientRect().top-top:p.getBoundingClientRect().height-parseFloat(getComputedStyle(p).paddingBottom||0);
+    };
+
+    let cur=mkPage(true); page.after(cur);
+    let limit=limitOf(cur), art=cur.querySelector(':scope>article');
+    const made=[cur];
+    blocks.forEach(b=>{
+      art.appendChild(b);
+      const over=b.getBoundingClientRect().bottom+(parseFloat(getComputedStyle(b).marginBottom)||0)-cur.getBoundingClientRect().top>limit+0.5;
+      if(over&&art.children.length>1){
+        cur=mkPage(false); made[made.length-1].after(cur); made.push(cur);
+        limit=limitOf(cur); art=cur.querySelector(':scope>article'); art.appendChild(b);
+      }
+    });
+    // first page keeps its own header/footer; continuation pages carry the default ones
+    made.forEach(p=>p.style.visibility='');
+    // replace the original page by the first rebuilt page
+    page.remove();
+  });
+}
+
 async function showPreview(blob){
   const box=$('docxPreview'); box.innerHTML='';
   await docx.renderAsync(blob,box,null,{className:'docx',breakPages:true});
+  try{repaginate(box,await continuationParts(blob))}catch(e){console.error('Preview pagination skipped:',e)}
   fitPreview();
 }
 function fitPreview(){
