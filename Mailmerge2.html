@@ -24,7 +24,7 @@ main{flex:1;min-height:0;display:grid;grid-template-columns:400px 1fr;gap:14px;p
 .scroll{overflow:auto;min-height:0;flex:1;padding-right:2px}
 h2{font-size:14px;margin:0 0 10px;color:var(--blue);text-transform:uppercase;letter-spacing:.5px}
 label{font-weight:700;font-size:12px;display:block;margin-bottom:5px;color:var(--blue)}
-input[type=file],input[type=number],input[type=text]{width:100%;padding:8px 10px;border:1px solid #c5cbd9;border-radius:8px;background:#fff;font:inherit;font-size:13px}
+select,input[type=file],input[type=number],input[type=text]{width:100%;padding:8px 10px;border:1px solid #c5cbd9;border-radius:8px;background:#fff;font:inherit;font-size:13px}
 input:focus{outline:2px solid #e4002b33;border-color:var(--red)}
 button{border:0;border-radius:8px;padding:10px 14px;cursor:pointer;font:inherit;font-weight:700;font-size:13px}
 button:disabled{opacity:.4;cursor:not-allowed}
@@ -108,6 +108,14 @@ button:disabled{opacity:.4;cursor:not-allowed}
     </section>
 
     <section class="card">
+      <div id="outputMode" style="display:none;margin-bottom:10px">
+        <label for="outMode">Output</label>
+        <select id="outMode">
+          <option value="single">One combined Word file</option>
+          <option value="separate">Individual files (.zip) — named by "Save as"</option>
+          <option value="grouped">Grouped files (.zip) — by "Save as group"</option>
+        </select>
+      </div>
       <div class="row">
         <button class="secondary" id="previewBtn" type="button" disabled>Preview</button>
         <button class="primary" id="makeDocx" type="button" disabled>Download Word file</button>
@@ -157,6 +165,12 @@ function setMode(m){
   $('manualPanel').style.display=m==='manual'?'block':'none';
   $('tabCsv').classList.toggle('on',m==='csv');
   $('tabManual').classList.toggle('on',m==='manual');
+  updateOutUI();
+}
+function updateOutUI(){
+  $('outputMode').style.display=mode==='csv'?'block':'none';
+  const v=mode==='csv'?$('outMode').value:'single';
+  $('makeDocx').textContent=v==='separate'?'Download individual files (.zip)':v==='grouped'?'Download grouped files (.zip)':'Download Word file';
 }
 
 async function readTemplate(file){
@@ -177,7 +191,13 @@ function renderManualFields(){
   const box=$('manualFields'); box.innerHTML='';
   $('manualEmpty').style.display=fields.length?'none':'block';
   $('manualEmpty').textContent=templateBytes?'No [[field]] placeholders found in this template.':'Upload a template to see its fields.';
-  fields.forEach(f=>{
+  if(fields.length){
+    const w=document.createElement('div'); w.style.gridColumn='1/-1';
+    const l=document.createElement('label'); l.textContent='Save as (optional file name)';
+    const i=document.createElement('input'); i.type='text'; i.dataset.field='Save as'; i.placeholder='e.g. Smith - Welcome letter';
+    w.append(l,i); box.append(w);
+  }
+  fields.filter(f=>norm(f)!=='save as').forEach(f=>{
     const w=document.createElement('div');
     const l=document.createElement('label'); l.textContent=f;
     const i=document.createElement('input'); i.type='text'; i.dataset.field=f;
@@ -207,7 +227,8 @@ function validateColumns(){
 
 function downloadCsvTemplate(){
   if(!fields.length)return;
-  const csv='\ufeff'+fields.map(f=>`"${f.replace(/"/g,'""')}"`).join(',')+'\r\n';
+  const cols=[...fields.filter(f=>!['save as','save as group'].includes(norm(f))),'Save as','Save as group'];
+  const csv='\ufeff'+cols.map(f=>`"${f.replace(/"/g,'""')}"`).join(',')+'\r\n';
   saveAs(new Blob([csv],{type:'text/csv;charset=utf-8'}),templateName.replace(/\.docx$/i,'')+'-csv-template.csv');
 }
 
@@ -338,12 +359,61 @@ $('previewBtn').onclick=async()=>{
   prevRows=data; await showRecord(0);
   out(`Previewing ${data.length} record${data.length===1?'':'s'}`);
 };
+function cleanName(v){
+  let n=String(v||'').trim().replace(/\.docx$/i,'').replace(/[\\/:*?"<>|\x00-\x1f]/g,'-').replace(/\s+/g,' ').trim().replace(/[. ]+$/,'');
+  return n.slice(0,120);
+}
+function uniqueName(base,used){
+  let name=base, n=2;
+  while(used.has(name.toLowerCase())){name=`${base}-${n++}`}
+  used.add(name.toLowerCase());
+  return name+'.docx';
+}
+// individual: one file per row, named by "Save as".
+// grouped: rows sharing a "Save as group" value go into one file (CSV order);
+// rows with a blank group become their own file (letter-N).
+function buildUnits(data,byGroup){
+  const units=[], groups=new Map();
+  data.forEach((row,i)=>{
+    const lk={}; Object.keys(row).forEach(k=>lk[norm(k)]=row[k]);
+    if(byGroup){
+      const g=cleanName(lk['save as group']);
+      if(g){
+        const key=g.toLowerCase();
+        if(!groups.has(key)){const u={base:g,rows:[]};groups.set(key,u);units.push(u)}
+        groups.get(key).rows.push(row);
+      }else units.push({base:`letter-${i+1}`,rows:[row]});
+    }else{
+      units.push({base:cleanName(lk['save as'])||`letter-${i+1}`,rows:[row]});
+    }
+  });
+  return units;
+}
+
 $('makeDocx').onclick=async()=>{
+  const baseName=templateName.replace(/\.docx$/i,'');
+  if(mode==='csv'&&$('outMode').value!=='single'){
+    if(!templateBytes){alert('Choose a Word template first.');return}
+    const data=selectedRows(); if(!data.length)return;
+    try{
+      const zip=new JSZip(), used=new Set(), units=buildUnits(data,$('outMode').value==='grouped');
+      units.forEach(u=>zip.file(uniqueName(u.base,used),mergeDocx(u.rows)));
+      saveAs(await zip.generateAsync({type:'blob'}),baseName+'-letters.zip');
+      out(`Downloaded • ${units.length} file${units.length===1?'':'s'} from ${data.length} record${data.length===1?'':'s'} in a zip`);
+      prevRows=data; await showRecord(0);
+    }catch(e){
+      console.error(e);
+      out('Merge failed: '+(e.properties?.errors?.map(x=>x.properties?.explanation).join('; ')||e.message));
+    }
+    return;
+  }
   const r=build(); if(!r)return;
-  saveAs(r.blob,templateName.replace(/\.docx$/i,'')+'-merged.docx');
+  let name=cleanName(r.count===1?(r.data[0]['Save as']||''):'');
+  saveAs(r.blob,(name||baseName+'-merged')+'.docx');
   out(`Downloaded • ${r.count} record${r.count===1?'':'s'}`);
   prevRows=r.data; await showRecord(0);
 };
+$('outMode').onchange=updateOutUI;
 $('firstBtn').onclick=()=>showRecord(0);
 $('prevBtn').onclick=()=>showRecord(prevIdx-1);
 $('nextBtn').onclick=()=>showRecord(prevIdx+1);
