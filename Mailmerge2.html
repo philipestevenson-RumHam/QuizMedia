@@ -315,12 +315,10 @@ function concatenateDocx(zips){
 // Do not rebuild/re-flow the rendered DOM: doing so can lose section-specific
 // header/footer geometry and can create blank pages that are not present in Word.
 async function applyFirstPageHeaderRule(blob,box){
-  // docx-preview renders a section's first-page header on every page when
-  // w:titlePg is present. Word instead uses the "first" header only on
-  // page 1 and the "default" header thereafter. Build a small secondary
-  // render with titlePg disabled, take its default header/footer, and use
-  // those only on continuation pages. This changes only the preview DOM;
-  // the downloaded DOCX remains untouched.
+  // docx-preview currently does not reliably apply Word's w:titlePg rule when
+  // laying out a section. Render the same document twice: once exactly as the
+  // real DOCX (to preserve the first-page header), and once with titlePg
+  // removed (to obtain the normal/default header used from page 2 onward).
   const zip=await JSZip.loadAsync(blob);
   const docFile=zip.file('word/document.xml');
   if(!docFile)return;
@@ -328,9 +326,12 @@ async function applyFirstPageHeaderRule(blob,box){
   if(!/<w:titlePg\b/i.test(xml))return;
 
   const defaultZip=zip.clone();
-  defaultZip.file('word/document.xml',xml.replace(/<w:titlePg\b[^>]*\/>/g,''));
+  // Word uses the default header/footer when w:titlePg is absent.
+  const withoutTitlePg=xml.replace(/<w:titlePg\b[^>]*(?:\/>|>[\s\S]*?<\/w:titlePg>)/gi,'');
+  defaultZip.file('word/document.xml',withoutTitlePg);
+
   const probe=document.createElement('div');
-  probe.style.cssText='position:absolute;left:-99999px;top:0;visibility:hidden;width:1200px';
+  probe.style.cssText='position:absolute;left:-99999px;top:0;visibility:hidden;width:1200px;height:auto';
   document.body.appendChild(probe);
   try{
     await docx.renderAsync(await defaultZip.generateAsync({type:'blob'}),probe,null,{
@@ -339,25 +340,36 @@ async function applyFirstPageHeaderRule(blob,box){
       ignoreLastRenderedPageBreak:false,
       experimental:{renderHeaders:true,renderFooters:true}
     });
-    const defaultPage=probe.querySelector('section.docx');
-    const defaultHeader=defaultPage?.querySelector(':scope>header');
-    const defaultFooter=defaultPage?.querySelector(':scope>footer');
-    const pages=[...box.querySelectorAll('.docx-wrapper>section.docx')];
-    pages.slice(1).forEach(page=>{
-      const oldHeader=page.querySelector(':scope>header');
-      if(defaultHeader){
-        const h=defaultHeader.cloneNode(true);
-        if(oldHeader)oldHeader.replaceWith(h); else page.insertBefore(h,page.firstChild);
+
+    const realPages=[...box.querySelectorAll('.docx-wrapper>section.docx')];
+    const defaultPages=[...probe.querySelectorAll('.docx-wrapper>section.docx')];
+    if(realPages.length<2 || !defaultPages.length)return;
+
+    // Use the matching continuation-page header/footer from the default render.
+    // This is deliberately page-by-page rather than copying page 1's header.
+    for(let i=1;i<realPages.length;i++){
+      const real=realPages[i];
+      const normal=defaultPages[Math.min(i,defaultPages.length-1)];
+      if(!normal)continue;
+
+      const normalHeader=normal.querySelector('header');
+      const realHeader=real.querySelector('header');
+      if(normalHeader){
+        const h=normalHeader.cloneNode(true);
+        if(realHeader)realHeader.replaceWith(h);
+        else real.insertBefore(h,real.firstChild);
       }
-      const oldFooter=page.querySelector(':scope>footer');
-      if(defaultFooter){
-        const f=defaultFooter.cloneNode(true);
-        if(oldFooter)oldFooter.replaceWith(f); else page.appendChild(f);
+
+      const normalFooter=normal.querySelector('footer');
+      const realFooter=real.querySelector('footer');
+      if(normalFooter){
+        const f=normalFooter.cloneNode(true);
+        if(realFooter)realFooter.replaceWith(f);
+        else real.appendChild(f);
       }
-    });
+    }
   }finally{probe.remove()}
 }
-
 async function showPreview(blob){
   const box=$('docxPreview');
   box.innerHTML='';
