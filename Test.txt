@@ -1,0 +1,58 @@
+Sub DumpSchema()
+    Dim db As DAO.Database, tbl As TableDef, fld As Field, rel As Relation
+    Set db = CurrentDb
+    For Each tbl In db.TableDefs
+        If Left(tbl.Name, 4) <> "MSys" Then
+            Debug.Print "TABLE: " & tbl.Name
+            For Each fld In tbl.Fields
+                Debug.Print "  FIELD: " & fld.Name & " | Type=" & fld.Type & _
+                    " | Size=" & fld.Size & " | Required=" & fld.Required & _
+                    " | Default=" & fld.DefaultValue & " | ValidationRule=" & fld.ValidationRule
+            Next fld
+        End If
+    Next tbl
+    For Each rel In db.Relations
+        Debug.Print "RELATION: " & rel.Name & " | " & rel.Table & " -> " & rel.ForeignTable
+    Next rel
+End Sub
+
+
+
+
+Sub DumpForms()
+    Dim frm As AccessObject, ctl As Control
+    Dim db As Object
+    
+    For Each frm In CurrentProject.AllForms
+        Debug.Print "===================================="
+        Debug.Print "FORM: " & frm.Name
+        
+        DoCmd.OpenForm frm.Name, acDesign, , , , acHidden
+        
+        Dim f As Form
+        Set f = Forms(frm.Name)
+        
+        Debug.Print "  Caption: " & f.Caption
+        Debug.Print "  RecordSource: " & f.RecordSource
+        
+        For Each ctl In f.Controls
+            Debug.Print "  CONTROL: " & ctl.Name & _
+                " | Type=" & ctl.ControlType & _
+                " | Left=" & ctl.Left & " | Top=" & ctl.Top & _
+                " | Width=" & ctl.Width & " | Height=" & ctl.Height
+            
+            On Error Resume Next
+            Debug.Print "    Caption=" & ctl.Caption
+            Debug.Print "    ControlSource=" & ctl.ControlSource
+            Debug.Print "    RowSource=" & ctl.RowSource   ' for combo/list boxes
+            Debug.Print "    InputMask=" & ctl.InputMask
+            Debug.Print "    Format=" & ctl.Format
+            Debug.Print "    DefaultValue=" & ctl.DefaultValue
+            Debug.Print "    ValidationRule=" & ctl.ValidationRule
+            Debug.Print "    Enabled=" & ctl.Enabled & " | Locked=" & ctl.Locked & " | Visible=" & ctl.Visible
+            On Error GoTo 0
+        Next ctl
+        
+        DoCmd.Close acForm, frm.Name, acSaveNo
+    Next frm
+End Sub
