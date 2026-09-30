@@ -327,7 +327,14 @@ async function applyFirstPageHeaderRule(blob,box){
 
   const defaultZip=zip.clone();
   // Word uses the default header/footer when w:titlePg is absent.
-  const withoutTitlePg=xml.replace(/<w:titlePg\b[^>]*(?:\/>|>[\s\S]*?<\/w:titlePg>)/gi,'');
+  // docx-preview can still choose the `first` header if its section
+  // reference remains, even after w:titlePg is removed. For the continuation
+  // render we therefore remove the first-page header/footer references too,
+  // forcing the renderer to use the normal/default header and footer.
+  const withoutTitlePg=xml
+    .replace(/<w:titlePg\b[^>]*(?:\/>|>[\s\S]*?<\/w:titlePg>)/gi,'')
+    .replace(/<w:headerReference\b[^>]*w:type=[\"']first[\"'][^>]*\/>/gi,'')
+    .replace(/<w:footerReference\b[^>]*w:type=[\"']first[\"'][^>]*\/>/gi,'');
   defaultZip.file('word/document.xml',withoutTitlePg);
 
   const probe=document.createElement('div');
